@@ -13,7 +13,7 @@
   
   let { data, children } = $props();
   let theme: `system` | `light` | `dark` = $state('system');
-  let showFullBar = new MediaQuery("min-width: 727px");
+  let showFullBar = new MediaQuery("min-width: 750px");
 
   // #region Theme
   onMount(() => {

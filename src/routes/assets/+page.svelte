@@ -1,7 +1,8 @@
 <script lang="ts">
   import { AssetFileFormat, AssetType, Status, type AssetPublicAPI } from "$lib/api/DBTypes";
-  import AssetCard from "$lib/components/browser/AssetCard.svelte";
+  import AssetCard from "$lib/components/assets/AssetCard.svelte";
   import * as Pagination from "$shadcn/components/ui/pagination";
+  import Separator from "$shadcn/components/ui/separator/separator.svelte";
 
   let dummyAssetData: AssetPublicAPI = {
       id: 1,
@@ -33,9 +34,15 @@
     }
 </script>
 
-<div class="flex flex-col items-center w-[80%] m-auto max-w-6xl p-4 rounded-2xl">
-  <AssetCard asset={dummyAssetData}/>
-  <Pagination.Root count={100} perPage={10}>
+<div class="flex flex-col items-center w-[90%] m-auto max-w-7xl p-4 rounded-2xl">
+  <div class="flex flex-row flex-wrap justify-center gap-4">
+    <AssetCard asset={dummyAssetData}/>
+    <AssetCard asset={dummyAssetData}/>
+    <AssetCard asset={dummyAssetData}/>
+    <AssetCard asset={dummyAssetData}/>
+  </div>
+  <Separator class="my-4 w-full" />
+  <Pagination.Root count={10} perPage={10}>
   {#snippet children({ pages, currentPage })}
     <Pagination.Content>
       <Pagination.Item>
