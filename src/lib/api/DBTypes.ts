@@ -8,6 +8,27 @@ export type UserPublicAPI = {
     avatarUrl: string | null;
 }
 
+export type AssetPublicAPI = {
+    id: number;
+    oldId: string | null;
+    linkedIds: LinkedAsset[]; // Array of linked asset IDs
+    type: AssetType;
+    fileFormat: AssetFileFormat;
+    author: UserPublicAPI;
+    name: string;
+    description: string;
+    license: string; // e.g. CC-BY, CC0, etc. or 'custom'
+    licenseUrl: string | null;
+    sourceUrl: string | null;
+    fileHash: string;
+    fileSize: number;
+    status: Status;
+    statusHistory: StatusHistory[];
+    tags: string[];
+    createdAt: Date;
+    updatedAt: Date;
+}
+
 export enum UserRole {
     Admin = "admin",
     Developer = "developer",

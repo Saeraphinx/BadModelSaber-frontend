@@ -9,6 +9,10 @@ declare global {
     // interface Locals {}
     interface PageData {
       user?: UserPublicAPI;
+      pageMetadata?: {
+        title?: string;
+      },
+      data?: any; // This can be used to pass any additional data to the page
     }
     // interface PageState {}
     // interface Platform {}
