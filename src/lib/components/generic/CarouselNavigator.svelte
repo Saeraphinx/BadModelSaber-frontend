@@ -3,15 +3,34 @@
   import * as Carousel from "$shadcn/components/ui/carousel/index.js";
   import { type CarouselAPI } from "$shadcn/components/ui/carousel/context.js";
   import { ChevronLeftIcon, ChevronRightIcon } from "@lucide/svelte";
+  import { onMount } from "svelte";
 
   let {
     api,
+    showOnlyOne = true
   }: {
-    api?: CarouselAPI;
+    api: CarouselAPI;
+    showOnlyOne?: boolean;
   } = $props();
 
-  let currentIndexes = $derived.by(() => api?.slidesInView() || []);
+  let currentIndexes: number[] = $state([0]);
   let items = $derived.by(() => api?.slideNodes() || []);
+  onMount(() => {
+    if (api) {
+      // Initialize currentIndexes based on the API state
+      currentIndexes = showOnlyOne ? [api.selectedScrollSnap() ?? 0] : (api.slidesInView() || []);
+      // Update currentIndexes when the carousel scrolls
+      api.on(`select`, () => {
+        if (showOnlyOne) {
+          currentIndexes = [api.selectedScrollSnap() ?? 0];
+        } else {
+          currentIndexes = api.slidesInView() || [];
+        }
+      });
+    } else {
+      console.warn("Carousel API is not provided to CarouselNavigator.");
+    }
+  });
 </script>
 
 <div class="flex justify-between w-full mt-2">
@@ -20,7 +39,9 @@
   </Button>
   {#each items as idk, index}
     <Button variant="ghost" size="icon" onclick={() => api?.scrollTo(index)}>
-      <span class="h-2 w-2 rounded-4xl transition-colors {currentIndexes.includes(index) ? `bg-gray-400 dark:bg-gray-200` : `bg-gray-200 dark:bg-gray-500`}"></span>
+      {#key currentIndexes}
+        <span class="h-2 w-2 rounded-4xl transition-all duration-300 {currentIndexes.includes(index) ? `bg-gray-400 dark:bg-gray-200` : `bg-gray-200 dark:bg-gray-500`}"></span>
+      {/key}
     </Button>
   {/each}
   <Button variant="ghost" size="icon" onclick={() => api?.scrollNext()}>

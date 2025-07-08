@@ -21,6 +21,18 @@ export const load = (async ({ params }) => {
       },{
         id: `3`,
         linkType: LinkedAssetLinkType.Alternate,
+      },{
+        id: `2`,
+        linkType: LinkedAssetLinkType.Alternate,
+      },{
+        id: `3`,
+        linkType: LinkedAssetLinkType.Alternate,
+      },{
+        id: `2`,
+        linkType: LinkedAssetLinkType.Alternate,
+      },{
+        id: `3`,
+        linkType: LinkedAssetLinkType.Alternate,
       }],
       type: AssetType.ChromaEnvironment,
       fileFormat: AssetFileFormat.JSON,
