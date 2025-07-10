@@ -1,4 +1,4 @@
-import { AssetFileFormat, AssetType, LinkedAssetLinkType, Status, type AssetPublicAPI } from '$lib/api/DBTypes';
+import { AssetFileFormat, AssetType, LinkedAssetLinkType, Status, type AssetPublicAPI } from '$lib/scripts/api/DBTypes';
 import type { PageLoad } from './$types';
 
 export const load = (async ({ params }) => {

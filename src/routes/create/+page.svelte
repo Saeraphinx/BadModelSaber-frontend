@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { AssetFileFormat } from "$lib/api/DBTypes";
+  import { AssetFileFormat } from "$lib/scripts/api/DBTypes";
   import LicenseSelector from "$lib/components/forms/LicenseSelector.svelte";
   import Button, { buttonVariants } from "$shadcn/components/ui/button/button.svelte";
   import Input from "$shadcn/components/ui/input/input.svelte";

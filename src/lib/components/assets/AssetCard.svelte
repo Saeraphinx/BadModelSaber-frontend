@@ -1,16 +1,29 @@
 <script lang="ts">
   import { assets } from "$app/paths";
-  import { Status, type AssetPublicAPI, type UserPublicAPI } from "$lib/api/DBTypes";
+  import { Status, type AssetPublicAPI, type UserPublicAPI } from "$lib/scripts/api/DBTypes";
   import { Badge } from "$shadcn/components/ui/badge";
   import Button from "$shadcn/components/ui/button/button.svelte";
   import { BadgeAlert, BadgeCheck, BadgeX, Download, DownloadCloud, InfoIcon } from "@lucide/svelte";
+  import ApprovalDialog from "./ApprovalDialog.svelte";
 
   let props: {
     asset: AssetPublicAPI;
-    size?: "linked" | "normal";
+    size?: "linked" | "normal" | "large";
+    approvalDialog?: ApprovalDialog;
   } = $props();
 
-  let sizeClasses =  props.size === `normal` ? "w-64 h-64" : "w-48 h-48";
+  let sizeClasses = $derived.by(() => {
+    switch (props.size) {
+      case "linked":
+        return "w-24 h-24";
+      case "normal":
+        return "w-48 h-48";
+      case "large":
+        return "w-64 h-64";
+      default:
+        return "w-48 h-48"; // Default to normal size
+    }
+  });
   let downloadUrl = `/files/${props.asset.fileHash}.${props.asset.fileFormat.split("_")[1].toLowerCase()}`;
 </script>
 
@@ -44,7 +57,7 @@
     <!-- Title Banner -->
     <div class="absolute top-0 left-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs w-full rounded-t-2xl">
       <div class="p-2 pl-4 flex flex-col">
-        <span class="{props.size == `normal` ? `text-2xl` : `text-lg`}">{props.asset.name}</span>
+        <span class={props.size == `normal` ? `text-2xl` : `text-lg`}>{props.asset.name}</span>
         <a href="/user/{props.asset.author.id}" class="text-sm text-gray-500 dark:text-gray-400">{props.asset.author.displayName}</a>
       </div>
       <!-- <div class="flex flex-row flex-wrap pb-2 pl-4 gap-1">
@@ -54,6 +67,11 @@
 
     <!-- Buttons -->
     <div class="absolute flex bottom-2 right-2 hover:backdrop-blur-sm bg-white/20 dark:bg-gray-800/20 rounded-md">
+      {#if props.approvalDialog}
+        <Button variant="ghost" size="icon" title="Update Status" onclick={() => props.approvalDialog?.showDialog(props.asset.id, props.asset.name)}>
+          <BadgeAlert />
+        </Button>
+      {/if}
       <Button variant="ghost" href="/assets/{props.asset.id}" size="icon" title="Goto Asset Page">
         <InfoIcon />
       </Button>

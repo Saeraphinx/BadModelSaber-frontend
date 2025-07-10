@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { AssetFileFormat, AssetType, Status, type AssetPublicAPI } from "$lib/api/DBTypes";
+  import { AssetFileFormat, AssetType, Status, type AssetPublicAPI } from "$lib/scripts/api/DBTypes.js";
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
   import Badge from "$shadcn/components/ui/badge/badge.svelte";
   import Button from "$shadcn/components/ui/button/button.svelte";

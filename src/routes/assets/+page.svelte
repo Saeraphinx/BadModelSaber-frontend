@@ -1,65 +1,92 @@
 <script lang="ts">
-  import { AssetFileFormat, AssetType, Status, type AssetPublicAPI } from "$lib/api/DBTypes";
+  import { AssetFileFormat, AssetType, Status, type AssetPublicAPI } from "$lib/scripts/api/DBTypes";
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
   import * as RadioGroup from "$shadcn/components/ui/radio-group/index.js";
   import * as Pagination from "$shadcn/components/ui/pagination";
   import Separator from "$shadcn/components/ui/separator/separator.svelte";
   import * as Tabs from "$shadcn/components/ui/tabs/index.js";
-  import { ChevronLeft, ChevronRight, Radio } from "@lucide/svelte";
+  import { ChevronLeft, ChevronRight, FunnelIcon } from "@lucide/svelte";
   import { Label } from "$shadcn/components/ui/label";
   import { Checkbox } from "$shadcn/components/ui/checkbox/index.js";
   import Input from "$shadcn/components/ui/input/input.svelte";
   import { DropdownMenu } from "$shadcn/components/ui/dropdown-menu";
   import * as Select from "$shadcn/components/ui/select/index.js";
   import Button from "$shadcn/components/ui/button/button.svelte";
+  import { Skeleton } from "$shadcn/components/ui/skeleton";
+  import { MediaQuery } from "svelte/reactivity";
+  import * as Collapsible from "$shadcn/components/ui/collapsible";
+  import { generateAssetSearchEngine } from "$lib/scripts/utils/serach";
+  import { dummyAssetData } from "$lib/scripts/utils/dummy";
+  import { onMount } from "svelte";
+  import ApprovalPopup from "$lib/components/assets/ApprovalDialog.svelte";
+  import { fetchApi, getApiUrl } from "$lib/scripts/utils/api.js";
 
-  let dummyAssetData: AssetPublicAPI = {
-    id: 1,
-    name: `Asset 1`,
-    oldId: null,
-    linkedIds: [],
-    type: AssetType.ChromaEnvironment,
-    fileFormat: AssetFileFormat.JSON,
-    author: {
-      id: "user123",
-      username: `user1`,
-      displayName: `User 1`,
-      bio: null,
-      sponsorUrl: null,
-      roles: [],
-      avatarUrl: null,
-    },
-    description: "",
-    tags: [],
-    license: "",
-    licenseUrl: null,
-    sourceUrl: null,
-    fileHash: "",
-    fileSize: 0,
-    status: Status.Private,
-    statusHistory: [],
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
+  let { data } = $props();
+  let smallerIcons = new MediaQuery("max-width: 960px");
+  let tooSmall = new MediaQuery("max-width: 670px");
 
-  let currentTab = $state("account");
-  let assetTypes = Object.values(AssetType).map((type) => ({
-    value: type,
-    label: type.replaceAll(`-`, ` `),
-  }));
-  let assetFileFormats = Object.values(AssetFileFormat).map((format) => ({
-    value: format,
-    label: format.split(`_`)[1],
-  }));
-  let selectedAssetType = $state<AssetType | null>(null);
+  let selectedAssetType = $state<string>(data.pageData.type || `all`);
   let selectedFileFormats = $state<AssetFileFormat[]>([]);
   let selectedPageSizeString = $state(`24`);
   let selectedPageSize = $derived(Number(selectedPageSizeString));
+  let assetTypes = [
+    {
+      value: `all`,
+      label: `All`,
+    },
+    ...Object.values(AssetType).map((type) => ({
+      value: type,
+      label: type.replaceAll(`-`, ` `),
+    })),
+  ];
+  let assetFileFormats = $derived.by(() => {
+    return Object.values(AssetFileFormat).map((format) => {
+      let type = format.split("_")[0];
+      let label = format.split("_")[1];
+      if (selectedAssetType === `all` || selectedAssetType === type) {
+        return {
+          value: format,
+          label: `.${label}`
+        };
+      } else {
+        return null;
+      }
+    }).filter((format) => format !== null);
+  });
   let currentPage = $state(1);
+  let assetsLoading = $state<boolean>(true);
+  let assetArray = $state<AssetPublicAPI[]>([]);
+  let searchEngine = $state<ReturnType<typeof generateAssetSearchEngine>>();
+  let dialog = $state<ApprovalPopup>();
+
+  let filterTypeVisible = $state<boolean>(true);
+  let filterFileFormatVisible = $state<boolean>(true);
+
+  async function fetchAssets() {
+    assetsLoading = true;
+    let assets = await fetchApi<{assets: AssetPublicAPI[]}>(`/assets`).then((response) => {
+      if (response.isError) {
+        return;
+      }
+      return response.data.assets;
+    }).catch((error) => {
+      console.error("Error fetching assets:", error);
+      return undefined;
+    });
+
+    assetArray = assets ?? [];
+    searchEngine = generateAssetSearchEngine(assets ?? []);
+    assetsLoading = false;
+  }
+      
+  onMount(() => {
+    fetchAssets();
+  });
+  
 </script>
 
 {#snippet pagination()}
-  <Pagination.Root count={100} perPage={10}>
+  <Pagination.Root count={assetArray.length} perPage={selectedPageSize}>
     {#snippet children({ pages, currentPage })}
       <Pagination.Content>
         <Pagination.Item>
@@ -88,24 +115,29 @@
 
 {#snippet miniPagination()}
   <div class="flex flex-row items-center">
-    <Button variant="outline" size="icon" onclick={() => currentPage > 1 ? currentPage-- : null}>
+    <Button variant="outline" size="icon" onclick={() => (currentPage > 1 ? currentPage-- : null)}>
       <ChevronLeft class="h-4 w-4" />
     </Button>
-    <span class="text-sm whitespace-nowrap mx-2">{(currentPage - 1) * selectedPageSize + 1}-{selectedPageSize * currentPage} of 123456789</span>
+    <span class="text-sm whitespace-nowrap mx-2">{(currentPage - 1) * selectedPageSize + 1}-{selectedPageSize * currentPage > assetArray.length ? assetArray.length : selectedPageSize * currentPage} of {assetArray.length}</span>
     <Button variant="outline" size="icon" onclick={() => currentPage++}>
       <ChevronRight class="h-4 w-4" />
     </Button>
   </div>
 {/snippet}
 
-<div class="flex flex-col items-center w-[90%] m-auto max-w-7xl p-4 rounded-2xl">
-  <div class="flex flex-row">
-    <!-- Filter Area -->
-    <div class="flex flex-col items-start mb-4 mr-4 min-w-3xs">
-      <!-- Type Filter -->
-      <div class="flex flex-col bg-accent rounded-2xl w-full p-4 pt-2">
-        <span class="text-lg mb-2 font-semibold">Type</span>
-        <RadioGroup.Root value="option-one">
+{#snippet filters()}
+  <Collapsible.Root bind:open={filterTypeVisible}>
+    <div class="flex flex-col bg-accent rounded-2xl min-w-48 w-full py-2 px-4">
+      <Collapsible.Trigger class="flex items-center justify-between w-full">
+        <span class="text-lg font-semibold">Type</span>
+        <ChevronRight class="h-4 w-4 transition-transform {filterTypeVisible ? `rotate-90` : ``}" />
+      </Collapsible.Trigger>
+      <Collapsible.Content class="my-2">
+        <RadioGroup.Root
+          bind:value={selectedAssetType}
+          onValueChange={(value) => {
+            currentPage = 1; // Reset to first page on type change
+          }}>
           {#each assetTypes as type}
             <div class="flex items-center space-x-2 capitalize">
               <RadioGroup.Item value={type.value} id={type.value} />
@@ -113,12 +145,18 @@
             </div>
           {/each}
         </RadioGroup.Root>
-      </div>
-      <!-- File Format Filter -->
-      <div class="flex flex-col bg-accent rounded-2xl w-full p-4 pt-2 mt-4">
-        <span class="text-lg mb-2 font-semibold">File Format</span>
+      </Collapsible.Content>
+    </div>
+  </Collapsible.Root>
+  <Collapsible.Root bind:open={filterFileFormatVisible}>
+    <div class="flex flex-col bg-accent rounded-2xl min-w-48 w-full py-2 px-4 mt-4">
+      <Collapsible.Trigger class="flex items-center justify-between w-full">
+        <span class="text-lg font-semibold">File Format</span>
+        <ChevronRight class="h-4 w-4 transition-transform {filterFileFormatVisible ? `rotate-90` : ``}" />
+      </Collapsible.Trigger>
+      <Collapsible.Content class="my-2">
         {#each assetFileFormats as format}
-          <div class="flex items-center space-x-2 py-1 capitalize">
+          <div class="flex items-center space-x-2 py-1">
             <Checkbox
               onchange={(e) => {
                 if (e.currentTarget.value) {
@@ -132,7 +170,18 @@
             <Label for={format.value}>{format.label}</Label>
           </div>
         {/each}
-      </div>
+      </Collapsible.Content>
+    </div>
+  </Collapsible.Root>
+{/snippet}
+
+<div class="flex flex-col items-center w-[90%] not-md:w-full m-auto p-4 rounded-2xl">
+  <div class="flex flex-row w-full">
+    <!-- Filter Area -->
+    <div class="flex flex-col items-start mb-4 mr-4 whitespace-nowrap">
+      {#if !tooSmall.current}
+        {@render filters()}
+      {/if}
     </div>
     <!-- Content -->
     <div class="flex flex-col items-center w-full">
@@ -140,10 +189,10 @@
       <div class="flex flex-col bg-accent rounded-2xl w-full p-4 pt-2 mb-4">
         <Label for="asset-search" class="sr-only">Search</Label>
         <Input type="text" placeholder="Search assets..." class="w-full mt-2" id="asset-search" />
-        <div class="flex flex-row mt-2">
-          <div class="flex w-full items-center">
-            <Select.Root allowDeselect={false} bind:value={selectedPageSizeString} type="single" onValueChange={(value) => currentPage = 1}>
-              <Select.Trigger class="w-32">Page Size: {selectedPageSizeString}</Select.Trigger>
+        <div class="flex flex-row mt-2 flex-wrap gap-2">
+          <div class="flex items-center">
+            <Select.Root allowDeselect={false} bind:value={selectedPageSizeString} type="single" onValueChange={(value) => (currentPage = 1)}>
+              <Select.Trigger class="">{selectedPageSizeString} per page</Select.Trigger>
               <Select.Content>
                 {#each [24, 48, 72] as amount}
                   <Select.Item value={amount.toString()}>
@@ -152,6 +201,12 @@
                 {/each}
               </Select.Content>
             </Select.Root>
+            {#if tooSmall.current}
+              <Button variant="outline" class="ml-2">
+                <FunnelIcon class="h-4 w-4" />
+                <span class="sr-only">Show Filters</span>
+              </Button>
+            {/if}
           </div>
           <div class="flex-1 flex justify-end">
             {@render miniPagination()}
@@ -160,13 +215,27 @@
       </div>
       <!-- Cards -->
       <div class="flex flex-row flex-wrap justify-center gap-4">
-        <AssetCard asset={dummyAssetData} />
-        <AssetCard asset={dummyAssetData} />
-        <AssetCard asset={dummyAssetData} />
-        <AssetCard asset={dummyAssetData} />
+        {#if assetsLoading}
+          {#each { length: selectedPageSize }}
+            <Skeleton class="bg-gray-400/20 {smallerIcons.current ? `w-48 h-48` : `w-64 h-64`} rounded-2xl" />
+          {/each}
+        {:else}
+          {#if assetArray.length === 0}
+            <span class="text-gray-500 dark:text-gray-400 w-full py-8 text-center">No assets found.</span>
+          {/if}
+          {#each assetArray as asset (asset.id)}
+            <AssetCard {asset} approvalDialog={dialog} size={smallerIcons.current ? `normal` : `large`} />
+          {/each}
+        {/if}
       </div>
       <Separator class="my-4 w-full" />
-      {@render pagination()}
+      {#if !smallerIcons.current}
+        {@render pagination()}
+      {:else}
+        {@render miniPagination()}
+      {/if}
     </div>
   </div>
 </div>
+
+<ApprovalPopup bind:this={dialog} />
