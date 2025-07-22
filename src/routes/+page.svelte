@@ -1,3 +1,3 @@
 <div class="flex flex-col items-center">
-  <p>model</p>
+  <p>john model</p>
 </div>

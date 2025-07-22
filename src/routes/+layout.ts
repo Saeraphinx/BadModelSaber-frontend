@@ -1,4 +1,6 @@
+import { User } from "@lucide/svelte";
 import type { LayoutLoad } from "./$types";
+import { UserRole } from "$lib/scripts/api/DBTypes";
 
 export const load: LayoutLoad = async () => {
   let demoUser = {
@@ -7,7 +9,7 @@ export const load: LayoutLoad = async () => {
       displayName: "John Model",
       bio: null,
       sponsorUrl: null,
-      roles: [],
+      roles: [UserRole.Trusted],
       avatarUrl: `/modelsaber-logo-web.svg`
     }
   return {

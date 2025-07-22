@@ -4,6 +4,15 @@ export function getApiUrl(path: string): string {
   return `${env.PUBLIC_API_URL}${path}`;
 }
 
+export function getAssetUrl(fileName: string): string {
+  return `${env.PUBLIC_ASSET_URL}/uploads/${fileName}`;
+}
+
+export function getAssetThumbnailUrl(fileName: string): string {
+  return `${env.PUBLIC_ASSET_URL}/icons/${fileName}`;
+}
+
+
 export async function fetchApi<T>(path: string, options?: RequestInit): Promise<{
   response: Response;
   message: string;

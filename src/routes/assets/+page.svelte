@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { AssetFileFormat, AssetType, Status, type AssetPublicAPI } from "$lib/scripts/api/DBTypes";
+  import { AssetFileFormat, AssetType, Status, UserRole, type AssetPublicAPIv3 } from "$lib/scripts/api/DBTypes";
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
   import * as RadioGroup from "$shadcn/components/ui/radio-group/index.js";
   import * as Pagination from "$shadcn/components/ui/pagination";
@@ -16,13 +16,12 @@
   import { MediaQuery } from "svelte/reactivity";
   import * as Collapsible from "$shadcn/components/ui/collapsible";
   import { generateAssetSearchEngine } from "$lib/scripts/utils/serach";
-  import { dummyAssetData } from "$lib/scripts/utils/dummy";
   import { onMount } from "svelte";
   import ApprovalPopup from "$lib/components/assets/ApprovalDialog.svelte";
   import { fetchApi, getApiUrl } from "$lib/scripts/utils/api.js";
 
   let { data } = $props();
-  let smallerIcons = new MediaQuery("max-width: 960px");
+  let smallerIcons = new MediaQuery("max-width: 1000px");
   let tooSmall = new MediaQuery("max-width: 670px");
 
   let selectedAssetType = $state<string>(data.pageData.type || `all`);
@@ -55,16 +54,32 @@
   });
   let currentPage = $state(1);
   let assetsLoading = $state<boolean>(true);
-  let assetArray = $state<AssetPublicAPI[]>([]);
+  let assetArray = $state<AssetPublicAPIv3[]>([]);
   let searchEngine = $state<ReturnType<typeof generateAssetSearchEngine>>();
   let dialog = $state<ApprovalPopup>();
 
   let filterTypeVisible = $state<boolean>(true);
   let filterFileFormatVisible = $state<boolean>(true);
 
+  let filteredAssets = $derived.by(() => {
+    if (!assetArray || assetArray.length === 0) return [];
+
+    return assetArray.filter((asset) => {
+      let matchesType = selectedAssetType === `all` || asset.type === selectedAssetType;
+      console.log("Selected File Formats:", selectedFileFormats);
+      let matchesFormat = selectedFileFormats.length === 0 || selectedFileFormats.includes(asset.fileFormat);
+      return matchesType && matchesFormat;
+    });
+  });
+  let currentAssetArray = $derived.by(() => {
+    if (!filteredAssets || filteredAssets.length === 0) return [];
+    let start = (currentPage - 1) * selectedPageSize;
+    return filteredAssets.slice(start, start + selectedPageSize);
+  });
+
   async function fetchAssets() {
     assetsLoading = true;
-    let assets = await fetchApi<{assets: AssetPublicAPI[]}>(`/assets`).then((response) => {
+    let assets = await fetchApi<{assets: AssetPublicAPIv3[]}>(`/assets`).then((response) => {
       if (response.isError) {
         return;
       }
@@ -86,7 +101,9 @@
 </script>
 
 {#snippet pagination()}
-  <Pagination.Root count={assetArray.length} perPage={selectedPageSize}>
+  <Pagination.Root count={assetArray.length} perPage={selectedPageSize} bind:page={currentPage} onPageChange={() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }}>
     {#snippet children({ pages, currentPage })}
       <Pagination.Content>
         <Pagination.Item>
@@ -118,7 +135,7 @@
     <Button variant="outline" size="icon" onclick={() => (currentPage > 1 ? currentPage-- : null)}>
       <ChevronLeft class="h-4 w-4" />
     </Button>
-    <span class="text-sm whitespace-nowrap mx-2">{(currentPage - 1) * selectedPageSize + 1}-{selectedPageSize * currentPage > assetArray.length ? assetArray.length : selectedPageSize * currentPage} of {assetArray.length}</span>
+    <span class="text-sm whitespace-nowrap mx-2">{(currentPage - 1) * selectedPageSize + 1}-{selectedPageSize * currentPage > filteredAssets.length ? filteredAssets.length : selectedPageSize * currentPage} of {filteredAssets.length}</span>
     <Button variant="outline" size="icon" onclick={() => currentPage++}>
       <ChevronRight class="h-4 w-4" />
     </Button>
@@ -158,9 +175,10 @@
         {#each assetFileFormats as format}
           <div class="flex items-center space-x-2 py-1">
             <Checkbox
-              onchange={(e) => {
-                if (e.currentTarget.value) {
+              onCheckedChange={(e) => {
+                if (e) {
                   selectedFileFormats.push(format.value);
+                  selectedFileFormats = [...new Set(selectedFileFormats)]; // Ensure uniqueness & force reactivity
                 } else {
                   selectedFileFormats = selectedFileFormats.filter((f) => f !== format.value);
                 }
@@ -190,7 +208,7 @@
         <Label for="asset-search" class="sr-only">Search</Label>
         <Input type="text" placeholder="Search assets..." class="w-full mt-2" id="asset-search" />
         <div class="flex flex-row mt-2 flex-wrap gap-2">
-          <div class="flex items-center">
+          <div class="flex items-center gap-2">
             <Select.Root allowDeselect={false} bind:value={selectedPageSizeString} type="single" onValueChange={(value) => (currentPage = 1)}>
               <Select.Trigger class="">{selectedPageSizeString} per page</Select.Trigger>
               <Select.Content>
@@ -201,30 +219,30 @@
                 {/each}
               </Select.Content>
             </Select.Root>
-            {#if tooSmall.current}
-              <Button variant="outline" class="ml-2">
-                <FunnelIcon class="h-4 w-4" />
-                <span class="sr-only">Show Filters</span>
-              </Button>
-            {/if}
           </div>
+          {#if tooSmall.current}
+            <Button variant="outline">
+              <FunnelIcon class="h-4 w-4" />
+              <span class="sr-only">Show Filters</span>
+            </Button>
+          {/if}
           <div class="flex-1 flex justify-end">
             {@render miniPagination()}
           </div>
         </div>
       </div>
       <!-- Cards -->
-      <div class="flex flex-row flex-wrap justify-center gap-4">
+      <div class="flex flex-row flex-wrap justify-evenly gap-4 px-4">
         {#if assetsLoading}
           {#each { length: selectedPageSize }}
             <Skeleton class="bg-gray-400/20 {smallerIcons.current ? `w-48 h-48` : `w-64 h-64`} rounded-2xl" />
           {/each}
         {:else}
-          {#if assetArray.length === 0}
+          {#if filteredAssets.length === 0}
             <span class="text-gray-500 dark:text-gray-400 w-full py-8 text-center">No assets found.</span>
           {/if}
-          {#each assetArray as asset (asset.id)}
-            <AssetCard {asset} approvalDialog={dialog} size={smallerIcons.current ? `normal` : `large`} />
+          {#each currentAssetArray as asset (asset.id)}
+            <AssetCard {asset} approvalDialog={data.user.roles.includes(UserRole.Moderator) ? dialog : undefined} size={smallerIcons.current ? `normal` : `large`} />
           {/each}
         {/if}
       </div>

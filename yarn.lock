@@ -880,6 +880,13 @@ rollup@^4.34.9:
     "@rollup/rollup-win32-x64-msvc" "4.41.1"
     fsevents "~2.3.2"
 
+runed@^0.28.0:
+  version "0.28.0"
+  resolved "https://registry.yarnpkg.com/runed/-/runed-0.28.0.tgz#68e2ec076ae921f5e7ca0ebaa37e9f6598775c3c"
+  integrity sha512-k2xx7RuO9hWcdd9f+8JoBeqWtYrm5CALfgpkg2YDB80ds/QE4w0qqu34A7fqiAwiBBSBQOid7TLxwxVC27ymWQ==
+  dependencies:
+    esm-env "^1.0.0"
+
 runed@^0.29.0, runed@^0.29.1:
   version "0.29.1"
   resolved "https://registry.yarnpkg.com/runed/-/runed-0.29.1.tgz#773e3b555d4ab380099b5d6c2aeead4adb56dad2"
@@ -930,6 +937,13 @@ svelte-check@^4.0.0:
     fdir "^6.2.0"
     picocolors "^1.0.0"
     sade "^1.7.4"
+
+svelte-sonner@^1.0.5:
+  version "1.0.5"
+  resolved "https://registry.yarnpkg.com/svelte-sonner/-/svelte-sonner-1.0.5.tgz#ebe668432b18bb247d3ca872675e24a994f1595f"
+  integrity sha512-9dpGPFqKb/QWudYqGnEz93vuY+NgCEvyNvxoCLMVGw6sDN/3oVeKV1xiEirW2E1N3vJEyj5imSBNOGltQHA7mg==
+  dependencies:
+    runed "^0.28.0"
 
 svelte-toolbelt@^0.9.3:
   version "0.9.3"

@@ -10,6 +10,7 @@
   import { MediaQuery } from 'svelte/reactivity';
   import * as Popover from '$shadcn/components/ui/popover';
   import { page } from '$app/state';
+  import { Toaster } from '$shadcn/components/ui/sonner';
   
   let { data, children } = $props();
   let theme: `system` | `light` | `dark` = $state('system');
@@ -112,6 +113,8 @@
 <div class="px-4 text-base text-foreground">
   {@render children()}
 </div>
+
+<Toaster />
 
 <div class="fixed left-4 bottom-4">
   <DropdownMenu.Root>

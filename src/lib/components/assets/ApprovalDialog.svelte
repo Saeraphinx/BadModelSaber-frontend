@@ -1,10 +1,12 @@
 <script lang="ts">
   import { Status } from "$lib/scripts/api/DBTypes";
- import { Button, buttonVariants } from "$shadcn/components/ui/button/index.js";
- import * as Dialog from "$shadcn/components/ui/dialog/index.js";
- import { Input } from "$shadcn/components/ui/input/index.js";
- import { Label } from "$shadcn/components/ui/label/index.js";
- import * as RadioGroup from "$shadcn/components/ui/radio-group";
+  import { fetchApi } from "$lib/scripts/utils/api";
+  import { Button, buttonVariants } from "$shadcn/components/ui/button/index.js";
+  import * as Dialog from "$shadcn/components/ui/dialog/index.js";
+  import { Input } from "$shadcn/components/ui/input/index.js";
+  import { Label } from "$shadcn/components/ui/label/index.js";
+  import * as RadioGroup from "$shadcn/components/ui/radio-group";
+  import { toast } from "svelte-sonner";
 
  let statuses = Object.values(Status).map((status) => ({
     value: status,
@@ -22,6 +24,45 @@
     id = p_id;
     name = p_name;
     visible = true;
+  }
+
+  function handleSubmit() {
+    console.log(`Updating asset ${id} (${name}) to status ${selectedStatus} with reason: ${reason}`);
+    let res = fetchApi(`/approvals/assets/${id}`, {
+      method: 'POST',
+      credentials: 'include',
+      body: JSON.stringify({
+        status: selectedStatus,
+        reason: reason,
+      }),
+    }).then((res) => {
+      if (!res.isError) {
+        console.log(`Successfully updated asset ${id} (${name}) to status ${selectedStatus}`);
+        toast.success(`Successfully updated asset ${name} to ${selectedStatus}`, {
+          description: "The asset status has been updated successfully. Reload the page to see changes.",
+          dismissable: false,
+          action: {
+            label: "Reload",
+            onClick: () => window.location.reload(),
+          },
+        });
+        visible = false;
+      } else {
+        console.error(`Failed to update asset ${id} (${name}):`, res.message);
+        toast.error(`Failed to update asset ${name}`, {
+          description: res.message || "An error occurred while updating the asset status.",
+          dismissable: true,
+          duration: 30000
+        });
+      }
+    }).catch((err) => {
+      console.error(`Error updating asset ${id} (${name}):`, err);
+      toast.error(`Error updating asset ${name}`, {
+        description: "An unexpected error occurred while updating the asset status.",
+        dismissable: true,
+        duration: 30000
+      });
+    });
   }
 </script>
 
@@ -51,7 +92,7 @@
       </div>
     </div>
     <Dialog.Footer>
-      <Button type="submit">Save changes</Button>
+      <Button type="submit" onclick={handleSubmit}>Save changes</Button>
     </Dialog.Footer>
   </Dialog.Content>
 </Dialog.Root>
