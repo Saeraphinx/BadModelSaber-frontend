@@ -1,17 +1,18 @@
 <script lang="ts">
-  import { AssetFileFormat, AssetType, Status, type AssetPublicAPIv3 } from "$lib/scripts/api/DBTypes.js";
+  import { AssetFileFormat, AssetType, Status, UserRole, type AssetPublicAPIv3 } from "$lib/scripts/api/DBTypes.js";
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
   import Badge from "$shadcn/components/ui/badge/badge.svelte";
   import Button from "$shadcn/components/ui/button/button.svelte";
   import * as Carousel from "$shadcn/components/ui/carousel/index.js";
   import Separator from "$shadcn/components/ui/separator/separator.svelte";
   import { type CarouselAPI } from "$shadcn/components/ui/carousel/context.js";
-  import { Car, ChevronLeftIcon, ChevronRightIcon, CircleDot, CircleIcon, CloudDownloadIcon, DotIcon, DownloadIcon, MegaphoneIcon } from "@lucide/svelte";
+  import { BadgeAlert, Car, ChevronLeftIcon, ChevronRightIcon, CircleDot, CircleIcon, CloudDownloadIcon, DotIcon, DownloadIcon, MegaphoneIcon } from "@lucide/svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { page } from "$app/state";
   import Skeleton from "$shadcn/components/ui/skeleton/skeleton.svelte";
   import CarouselNavigator from "$lib/components/generic/CarouselNavigator.svelte";
   import { getAssetThumbnailUrl, getAssetUrl } from "$lib/scripts/utils/api.js";
+  import ApprovalPopup from "$lib/components/assets/ApprovalDialog.svelte";
 
   let { data } = $props();
 
@@ -22,6 +23,7 @@
   // loading related
   let isRelatedLoading = $state<boolean>(true);
   let relatedAssets = $state<AssetPublicAPIv3[]>([]);
+  let dialog: ApprovalPopup;
 </script>
 
 {#snippet dT_Regular(title = "Title", value = "", includeDiv = true)}
@@ -156,6 +158,14 @@
     <MegaphoneIcon />
     Report
   </Button>
+  {#if data.user && data.user.roles.includes(UserRole.Moderator)}
+    <Button variant="secondary" onclick={() => {
+      dialog?.showDialog(data.pageData.id, data.pageData.name);
+    }}>
+      <BadgeAlert />
+      Approval Dialog
+    </Button>
+  {/if}
 {/snippet}
 
 <div class="flex flex-col items-center w-[90%] m-auto max-w-6xl p-4 bg-background rounded-2xl">
@@ -200,3 +210,5 @@
     </div>
   {/if}
 </div>
+
+<ApprovalPopup bind:this={dialog} />

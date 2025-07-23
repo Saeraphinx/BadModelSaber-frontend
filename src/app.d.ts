@@ -9,6 +9,8 @@ declare global {
     // interface Locals {}
     interface PageData {
       user?: UserPublicAPI;
+      alerts?: unknown; // Define the type of alerts if known
+      fetch : typeof fetch; // Optional fetch override for server-side requests & to make sveltekit happy
       pageMetadata?: {
         title?: string;
       },

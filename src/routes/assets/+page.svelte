@@ -18,11 +18,13 @@
   import { generateAssetSearchEngine } from "$lib/scripts/utils/serach";
   import { onMount } from "svelte";
   import ApprovalPopup from "$lib/components/assets/ApprovalDialog.svelte";
-  import { fetchApi, getApiUrl } from "$lib/scripts/utils/api.js";
+  import { fetchApi } from "$lib/scripts/utils/api.js";
+  import { toast } from "svelte-sonner";
+  import { stylizeAssetType } from "$lib/scripts/utils/stylizer.js";
 
   let { data } = $props();
   let smallerIcons = new MediaQuery("max-width: 1000px");
-  let tooSmall = new MediaQuery("max-width: 670px");
+  let tooSmall = new MediaQuery("max-width: 768px");
 
   let selectedAssetType = $state<string>(data.pageData.type || `all`);
   let selectedFileFormats = $state<AssetFileFormat[]>([]);
@@ -41,11 +43,10 @@
   let assetFileFormats = $derived.by(() => {
     return Object.values(AssetFileFormat).map((format) => {
       let type = format.split("_")[0];
-      let label = format.split("_")[1];
       if (selectedAssetType === `all` || selectedAssetType === type) {
         return {
           value: format,
-          label: `.${label}`
+          label: stylizeAssetType(format),
         };
       } else {
         return null;
@@ -66,7 +67,6 @@
 
     return assetArray.filter((asset) => {
       let matchesType = selectedAssetType === `all` || asset.type === selectedAssetType;
-      console.log("Selected File Formats:", selectedFileFormats);
       let matchesFormat = selectedFileFormats.length === 0 || selectedFileFormats.includes(asset.fileFormat);
       return matchesType && matchesFormat;
     });
@@ -79,13 +79,18 @@
 
   async function fetchAssets() {
     assetsLoading = true;
-    let assets = await fetchApi<{assets: AssetPublicAPIv3[]}>(`/assets`).then((response) => {
+    let assets = await fetchApi<{assets: AssetPublicAPIv3[]}>(`/assets`, {}, data.fetch).then((response) => {
       if (response.isError) {
         return;
       }
       return response.data.assets;
     }).catch((error) => {
       console.error("Error fetching assets:", error);
+      toast.error("Failed to load assets. Please try again later.", {
+        description: `${error.message || "Unknown error"}`,
+        closeButton: true,
+        duration: 30000,
+      });
       return undefined;
     });
 
@@ -144,7 +149,7 @@
 
 {#snippet filters()}
   <Collapsible.Root bind:open={filterTypeVisible}>
-    <div class="flex flex-col bg-accent rounded-2xl min-w-48 w-full py-2 px-4">
+    <div class="flex flex-col bg-accent rounded-2xl min-w-56 w-full py-2 px-4">
       <Collapsible.Trigger class="flex items-center justify-between w-full">
         <span class="text-lg font-semibold">Type</span>
         <ChevronRight class="h-4 w-4 transition-transform {filterTypeVisible ? `rotate-90` : ``}" />
@@ -166,7 +171,7 @@
     </div>
   </Collapsible.Root>
   <Collapsible.Root bind:open={filterFileFormatVisible}>
-    <div class="flex flex-col bg-accent rounded-2xl min-w-48 w-full py-2 px-4 mt-4">
+    <div class="flex flex-col bg-accent rounded-2xl min-w-56 w-full py-2 px-4 mt-4">
       <Collapsible.Trigger class="flex items-center justify-between w-full">
         <span class="text-lg font-semibold">File Format</span>
         <ChevronRight class="h-4 w-4 transition-transform {filterFileFormatVisible ? `rotate-90` : ``}" />
@@ -193,14 +198,14 @@
   </Collapsible.Root>
 {/snippet}
 
-<div class="flex flex-col items-center w-[90%] not-md:w-full m-auto p-4 rounded-2xl">
+<div class="flex flex-col items-center w-[90%] not-lg:w-full m-auto p-4 rounded-2xl">
   <div class="flex flex-row w-full">
     <!-- Filter Area -->
-    <div class="flex flex-col items-start mb-4 mr-4 whitespace-nowrap">
-      {#if !tooSmall.current}
+     {#if !tooSmall.current}
+      <div class="flex flex-col items-start mb-4 mr-4 whitespace-nowrap">
         {@render filters()}
-      {/if}
-    </div>
+      </div>
+    {/if}
     <!-- Content -->
     <div class="flex flex-col items-center w-full">
       <!-- Top Bar -->
@@ -242,7 +247,7 @@
             <span class="text-gray-500 dark:text-gray-400 w-full py-8 text-center">No assets found.</span>
           {/if}
           {#each currentAssetArray as asset (asset.id)}
-            <AssetCard {asset} approvalDialog={data.user.roles.includes(UserRole.Moderator) ? dialog : undefined} size={smallerIcons.current ? `normal` : `large`} />
+            <AssetCard {asset} approvalDialog={data.user?.roles.includes(UserRole.Moderator) ? dialog : undefined} size={smallerIcons.current ? `normal` : `large`} />
           {/each}
         {/if}
       </div>

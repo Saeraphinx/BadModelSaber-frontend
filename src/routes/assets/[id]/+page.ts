@@ -2,11 +2,11 @@ import { AssetFileFormat, AssetType, LinkedAssetLinkType, Status, type AssetPubl
 import { fetchApi } from '$lib/scripts/utils/api';
 import type { PageLoad } from './$types';
 
-export const load = (async ({ params }) => {
+export const load = (async ({ fetch, params }) => {
     let asset = await fetchApi(`/assets/${params.id}`, {
         method: 'GET',
         credentials: 'include',
-    });
+    }, fetch);
     if (asset.isError) {
         console.error(`Failed to fetch asset with ID ${params.id}:`, asset.message);
         console.log(asset);
