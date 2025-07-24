@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/state";
+  import * as Accordion from "$shadcn/components/ui/accordion";
   import { Button } from "$shadcn/components/ui/button";
   import Separator from "$shadcn/components/ui/separator/separator.svelte";
   import { CodeXmlIcon, HomeIcon } from "@lucide/svelte";
@@ -20,7 +21,7 @@
   });
 </script>
 
-<div class="flex flex-col items-center justify-center">
+<div class="flex flex-col h-screen-nav overflow-auto items-center justify-center">
   <p class="text-3xl font-semibold mb-4">Error</p>
   {#if page.status === 404}
     <p class="text-lg text-muted-foreground mb-4">We couldn't find this page :(</p>
@@ -33,7 +34,7 @@
       onclick={() => {
         navigator.clipboard.writeText(JSON.stringify(page, null, 2));
         toast.success("Debug info copied to clipboard", {
-          description: "You can paste this in a GitHub issue or Discord for help. NOTE: This includes your current page state & user data.",
+          description: "You can paste this in a GitHub issue or Discord for help. NOTE: This includes info about the current page & user data.",
         });
       }}>
       <CodeXmlIcon />
@@ -45,10 +46,12 @@
     </Button>
   </div>
   <Separator class="my-4 w-full max-w-md" />
-  <div>
-    <p class="text-xs font-semibold">Debug Info</p>
-    <pre class="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto text-xs">
-<code>{JSON.stringify(pageUserOmitted, null, 2).trim()}</code>
-    </pre>
-  </div>
+    <Accordion.Root type="single" class="w-full max-w-md" value="">
+      <Accordion.Item value="item-1">
+      <Accordion.Trigger>Debug Info</Accordion.Trigger>
+      <Accordion.Content>
+        <pre class="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto text-xs"><code>{JSON.stringify(pageUserOmitted, null, 2).trim()}</code></pre>
+      </Accordion.Content>
+      </Accordion.Item>
+    </Accordion.Root>
 </div>

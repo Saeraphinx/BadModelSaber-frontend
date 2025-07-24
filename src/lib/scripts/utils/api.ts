@@ -62,8 +62,8 @@ export async function fetchApi<T>(path: string, options?: RequestInit, customFet
     return {
       response: response,
       message: response.statusText || "Success",
-      data: await response.json(),
-      status: 200,
+      data: response.status === 204 ? null : await response.json(),
+      status: response.status,
       isError: false,
     }
   }).catch((error) => {

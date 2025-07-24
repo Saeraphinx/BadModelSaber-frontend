@@ -5,20 +5,58 @@
   import { getContext, onMount } from "svelte";
   import Button from "$shadcn/components/ui/button/button.svelte";
   import * as Avatar from "$shadcn/components/ui/avatar";
-  import { BellIcon, FileBadgeIcon, GitBranchIcon, Link2Icon, LogIn, LogOutIcon, Menu, PlusIcon, Settings, SunIcon, UserIcon } from "@lucide/svelte";
+  import { BellDotIcon, BellIcon, FileBadgeIcon, GitBranchIcon, Link2Icon, LogIn, LogOutIcon, Menu, PlusIcon, Settings, SunIcon, UserIcon } from "@lucide/svelte";
   import type { Orientation } from "bits-ui";
   import { MediaQuery } from "svelte/reactivity";
   import * as Popover from "$shadcn/components/ui/popover";
   import { page } from "$app/state";
   import { Toaster } from "$shadcn/components/ui/sonner";
+  import { toast, type ExternalToast } from "svelte-sonner";
   import { env } from "$env/dynamic/public";
   import { UserRole } from "$lib/scripts/api/DBTypes";
   import Separator from "$shadcn/components/ui/separator/separator.svelte";
+  import { Badge } from "$shadcn/components/ui/badge";
 
   let { data, children } = $props();
   let theme: `system` | `light` | `dark` = $state("system");
   let showFullBar = new MediaQuery("min-width: 750px");
-  let subMenuOpen = $state(false);
+  let pendingAlerts = $derived(data.alerts.length > 0);
+  
+  // Alert count toast
+  onMount(() => {
+    if (pendingAlerts) {
+      toast.info(`You have ${data.alerts.length} unread alert${data.alerts.length == 1 ? `` : `s`}.`, {
+        description: "",
+        duration: 10000,
+        closeButton: true,
+        dismissable: true,
+        action: {
+          label: "View",
+          onClick: () => {
+            window.location.href = "/alerts";
+          },
+        }
+      });
+    }
+  });
+
+  // Layout Error Toasts
+  onMount(() => {
+    for (const pendingToast of data.pendingToasts || []) {
+      let options: ExternalToast = {
+        description: pendingToast.description,
+        closeButton: true,
+        dismissable: true,
+      }
+      if (pendingToast.type === 'info') {
+        toast.info(pendingToast.title, options);
+      } else if (pendingToast.type === 'success') {
+        toast.success(pendingToast.title, options);
+      } else if (pendingToast.type === 'error') {
+        toast.error(pendingToast.title, options);
+      }
+    }
+  });
 
   // #region Theme
   onMount(() => {
@@ -123,19 +161,28 @@
       <DropdownMenu.Root>
         <DropdownMenu.Trigger>
           <Avatar.Root>
-            <Avatar.Image src={data.user.id} alt={data.user.displayName} />
+            <Avatar.Image src={data.user.avatarUrl} alt={data.user.displayName} />
             <Avatar.Fallback>{data.user.displayName}</Avatar.Fallback>
           </Avatar.Root>
         </DropdownMenu.Trigger>
         <DropdownMenu.Content class="mr-12">
-          <DropdownMenu.Item>
-            <UserIcon />
-            Profile
-          </DropdownMenu.Item>
-          <DropdownMenu.Item>
-            <BellIcon />
-            Alerts
-          </DropdownMenu.Item>
+          <a href="/users/me">
+            <DropdownMenu.Item>
+              <UserIcon />
+              Profile
+            </DropdownMenu.Item>
+          </a>
+          <a href="/alerts">
+            <DropdownMenu.Item>
+              <BellIcon />
+              Alerts
+              {#if pendingAlerts}
+                <Badge class="ml-1" variant="destructive">
+                  {data.alerts.length}
+                </Badge>
+              {/if}
+            </DropdownMenu.Item>
+          </a>
           <DropdownMenu.Separator />
           <DropdownMenu.RadioGroup bind:value={theme} onValueChange={handleThemeChange}>
             <DropdownMenu.Label>
@@ -148,12 +195,10 @@
           <DropdownMenu.Separator />
           <a href="/logout">
             <DropdownMenu.Item >
-              <LogOutIcon />
+              <LogOutIcon class="text-red-400"/>
               Logout
             </DropdownMenu.Item>
           </a>
-          <DropdownMenu.Separator />
-          <DropdownMenu.Item class="pointer-events-none"><span class="text-[8px] text-gray-500">Commit: {env.PUBLIC_GIT_COMMIT || `Unknown`}</span></DropdownMenu.Item>
         </DropdownMenu.Content>
       </DropdownMenu.Root>
     {:else}
@@ -176,6 +221,7 @@
     closeButton: true,
     duration: 5000,
     classes: {
+      toast: "mt-10",
       title: "font-bold",
     },
   }} />
