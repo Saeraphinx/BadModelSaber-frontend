@@ -21,7 +21,7 @@
   let theme: `system` | `light` | `dark` = $state("system");
   let showFullBar = new MediaQuery("min-width: 750px");
   let pendingAlerts = $derived(data.alerts.length > 0);
-  
+
   // Alert count toast
   onMount(() => {
     if (pendingAlerts) {
@@ -35,7 +35,7 @@
           onClick: () => {
             window.location.href = "/alerts";
           },
-        }
+        },
       });
     }
   });
@@ -47,12 +47,12 @@
         description: pendingToast.description,
         closeButton: true,
         dismissable: true,
-      }
-      if (pendingToast.type === 'info') {
+      };
+      if (pendingToast.type === "info") {
         toast.info(pendingToast.title, options);
-      } else if (pendingToast.type === 'success') {
+      } else if (pendingToast.type === "success") {
         toast.success(pendingToast.title, options);
-      } else if (pendingToast.type === 'error') {
+      } else if (pendingToast.type === "error") {
         toast.error(pendingToast.title, options);
       }
     }
@@ -138,16 +138,18 @@
     {#if !showFullBar.current}
       <Popover.Root>
         <Popover.Trigger>
-          <Button variant="ghost" size="icon" class="text-base">
-            <Menu />
-          </Button>
+          {#snippet child()}
+            <Button variant="ghost" size="icon" class="text-base">
+              <Menu />
+            </Button>
+          {/snippet}
         </Popover.Trigger>
         <Popover.Content class="flex flex-col items-center justify-center w-auto">
-            {@render navbar_main("vertical")}
-            <Separator class="my-2 w-full" />
-            <div class="flex flex-row gap-2">
-              {@render tiny_buttons()}
-            </div>
+          {@render navbar_main("vertical")}
+          <Separator class="my-2 w-full" />
+          <div class="flex flex-row gap-2">
+            {@render tiny_buttons()}
+          </div>
         </Popover.Content>
       </Popover.Root>
     {/if}
@@ -185,17 +187,15 @@
           </a>
           <DropdownMenu.Separator />
           <DropdownMenu.RadioGroup bind:value={theme} onValueChange={handleThemeChange}>
-            <DropdownMenu.Label>
-              Theme
-            </DropdownMenu.Label>
+            <DropdownMenu.Label>Theme</DropdownMenu.Label>
             <DropdownMenu.RadioItem closeOnSelect={false} value="system">System</DropdownMenu.RadioItem>
             <DropdownMenu.RadioItem closeOnSelect={false} value="dark">Dark</DropdownMenu.RadioItem>
             <DropdownMenu.RadioItem closeOnSelect={false} value="light">Light</DropdownMenu.RadioItem>
           </DropdownMenu.RadioGroup>
           <DropdownMenu.Separator />
           <a href="/logout">
-            <DropdownMenu.Item >
-              <LogOutIcon class="text-red-400"/>
+            <DropdownMenu.Item>
+              <LogOutIcon class="text-red-400" />
               Logout
             </DropdownMenu.Item>
           </a>

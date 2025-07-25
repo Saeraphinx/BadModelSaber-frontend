@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { AssetFileFormat, AssetType, Status, UserRole, type AssetPublicAPIv3 } from "$lib/scripts/api/DBTypes";
+  import { AssetFileFormat, Status, UserRole, type AssetPublicAPIv3 } from "$lib/scripts/api/DBTypes";
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
   import * as RadioGroup from "$shadcn/components/ui/radio-group/index.js";
   import * as Pagination from "$shadcn/components/ui/pagination";
@@ -20,95 +20,93 @@
   import ApprovalPopup from "$lib/components/assets/ApprovalDialog.svelte";
   import { fetchApi } from "$lib/scripts/utils/api.js";
   import { toast } from "svelte-sonner";
-  import { stylizeAssetType } from "$lib/scripts/utils/stylizer.js";
+  import { getAssetTypeString } from "$lib/scripts/utils/stylizer.js";
 
   let { data } = $props();
+  // Generic Page Data
   let smallerIcons = new MediaQuery("max-width: 1000px");
   let tooSmall = new MediaQuery("max-width: 768px");
 
-  let selectedAssetType = $state<string>(data.pageData.type || `all`);
-  let selectedFileFormats = $state<AssetFileFormat[]>([]);
-  let selectedPageSizeString = $state(`24`);
-  let selectedPageSize = $derived(Number(selectedPageSizeString));
-  let assetTypes = [
-    {
-      value: `all`,
-      label: `All`,
-    },
-    ...Object.values(AssetType).map((type) => ({
-      value: type,
-      label: type.replaceAll(`-`, ` `),
-    })),
-  ];
-  let assetFileFormats = $derived.by(() => {
-    return Object.values(AssetFileFormat).map((format) => {
-      let type = format.split("_")[0];
-      if (selectedAssetType === `all` || selectedAssetType === type) {
-        return {
-          value: format,
-          label: stylizeAssetType(format),
-        };
-      } else {
-        return null;
-      }
-    }).filter((format) => format !== null);
-  });
-  let currentPage = $state(1);
-  let assetsLoading = $state<boolean>(true);
+  // Asset Data
+  let assetsLoading = $state(false);
   let assetArray = $state<AssetPublicAPIv3[]>([]);
   let searchEngine = $state<ReturnType<typeof generateAssetSearchEngine>>();
   let dialog = $state<ApprovalPopup>();
 
-  let filterTypeVisible = $state<boolean>(true);
-  let filterFileFormatVisible = $state<boolean>(true);
+  // Pagenation
+  let currentPage = $state(1);
+  let selectedPageSizeString = $state(`24`);
+  let selectedPageSize = $derived(Number(selectedPageSizeString));
 
-  let filteredAssets = $derived.by(() => {
+  // Filter Data
+  let filterFileFormatVisible = $state<boolean>(true);
+  let filterStatusVisible = $state<boolean>(true);
+  let selectedFileFormats = $state<AssetFileFormat[]>([]);
+  let selectedStatuses = $state<Status[]>([]);
+  let assetFileFormats = $derived.by(() => {
+    return Object.values(AssetFileFormat).map((format) => {
+      let type = format.split("_")[0];
+      return {
+        value: format,
+        label: getAssetTypeString(format),
+      };
+    });
+  });
+
+  // Filters Themselves
+  let filteredAssets = $derived.by(() => { // Filter Only
     if (!assetArray || assetArray.length === 0) return [];
 
     return assetArray.filter((asset) => {
-      let matchesType = selectedAssetType === `all` || asset.type === selectedAssetType;
       let matchesFormat = selectedFileFormats.length === 0 || selectedFileFormats.includes(asset.fileFormat);
-      return matchesType && matchesFormat;
+      let matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(asset.status);
+      return matchesFormat && matchesStatus;
     });
   });
-  let currentAssetArray = $derived.by(() => {
+  let currentAssetArray = $derived.by(() => { // Filter + Pagination
     if (!filteredAssets || filteredAssets.length === 0) return [];
     let start = (currentPage - 1) * selectedPageSize;
     return filteredAssets.slice(start, start + selectedPageSize);
   });
 
+  // Asset Fetch
   async function fetchAssets() {
     assetsLoading = true;
-    let assets = await fetchApi<{assets: AssetPublicAPIv3[]}>(`/assets`, {}, data.fetch).then((response) => {
-      if (response.isError) {
-        return;
-      }
-      return response.data.assets;
-    }).catch((error) => {
-      console.error("Error fetching assets:", error);
-      toast.error("Failed to load assets. Please try again later.", {
-        description: `${error.message || "Unknown error"}`,
-        closeButton: true,
-        duration: 30000,
+    let assets = await fetchApi<{ assets: AssetPublicAPIv3[] }>(`/assets`, {}, data.fetch)
+      .then((response) => {
+        if (response.isError) {
+          return;
+        }
+        return response.data.assets;
+      })
+      .catch((error) => {
+        console.error("Error fetching assets:", error);
+        toast.error("Failed to load assets. Please try again later.", {
+          description: `${error.message || "Unknown error"}`,
+          closeButton: true,
+          duration: 30000,
+        });
+        return undefined;
       });
-      return undefined;
-    });
 
     assetArray = assets ?? [];
     searchEngine = generateAssetSearchEngine(assets ?? []);
     assetsLoading = false;
   }
-      
+
   onMount(() => {
     fetchAssets();
   });
-  
 </script>
 
 {#snippet pagination()}
-  <Pagination.Root count={assetArray.length} perPage={selectedPageSize} bind:page={currentPage} onPageChange={() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }}>
+  <Pagination.Root
+    count={assetArray.length}
+    perPage={selectedPageSize}
+    bind:page={currentPage}
+    onPageChange={() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }}>
     {#snippet children({ pages, currentPage })}
       <Pagination.Content>
         <Pagination.Item>
@@ -148,30 +146,9 @@
 {/snippet}
 
 {#snippet filters()}
-  <Collapsible.Root bind:open={filterTypeVisible}>
-    <div class="flex flex-col bg-accent rounded-2xl min-w-56 w-full py-2 px-4">
-      <Collapsible.Trigger class="flex items-center justify-between w-full">
-        <span class="text-lg font-semibold">Type</span>
-        <ChevronRight class="h-4 w-4 transition-transform {filterTypeVisible ? `rotate-90` : ``}" />
-      </Collapsible.Trigger>
-      <Collapsible.Content class="my-2">
-        <RadioGroup.Root
-          bind:value={selectedAssetType}
-          onValueChange={(value) => {
-            currentPage = 1; // Reset to first page on type change
-          }}>
-          {#each assetTypes as type}
-            <div class="flex items-center space-x-2 capitalize">
-              <RadioGroup.Item value={type.value} id={type.value} />
-              <Label for={type.value}>{type.label}</Label>
-            </div>
-          {/each}
-        </RadioGroup.Root>
-      </Collapsible.Content>
-    </div>
-  </Collapsible.Root>
+  <!-- File Type Filter -->
   <Collapsible.Root bind:open={filterFileFormatVisible}>
-    <div class="flex flex-col bg-accent rounded-2xl min-w-56 w-full py-2 px-4 mt-4">
+    <div class="flex flex-col bg-accent rounded-2xl min-w-56 w-full py-2 px-4">
       <Collapsible.Trigger class="flex items-center justify-between w-full">
         <span class="text-lg font-semibold">File Format</span>
         <ChevronRight class="h-4 w-4 transition-transform {filterFileFormatVisible ? `rotate-90` : ``}" />
@@ -196,12 +173,40 @@
       </Collapsible.Content>
     </div>
   </Collapsible.Root>
+  {#if data.user && data.user.roles.includes(UserRole.Moderator)}
+    <Collapsible.Root bind:open={filterStatusVisible} class="mt-4">
+      <div class="flex flex-col bg-accent rounded-2xl min-w-56 w-full py-2 px-4">
+        <Collapsible.Trigger class="flex items-center justify-between w-full">
+          <span class="text-lg font-semibold">Status</span>
+          <ChevronRight class="h-4 w-4 transition-transform {data.user.roles.includes(UserRole.Moderator) ? `rotate-90` : ``}" />
+        </Collapsible.Trigger>
+        <Collapsible.Content class="my-2">
+          {#each Object.values(Status) as status}
+            <div class="flex items-center space-x-2 py-1">
+              <Checkbox
+                onCheckedChange={(e) => {
+                  if (e) {
+                    selectedStatuses.push(status);
+                    selectedStatuses = [...new Set(selectedStatuses)]; // Ensure uniqueness & force reactivity
+                  } else {
+                    selectedStatuses = selectedStatuses.filter((f) => f !== status);
+                  }
+                }}
+                value={status}
+                id={status} />
+              <Label for={status} class="first-letter:capitalize">{status}</Label>
+            </div>
+          {/each}
+        </Collapsible.Content>
+      </div>
+    </Collapsible.Root>
+  {/if}
 {/snippet}
 
 <div class="flex flex-col items-center w-[90%] not-lg:w-full m-auto p-4 rounded-2xl">
   <div class="flex flex-row w-full">
     <!-- Filter Area -->
-     {#if !tooSmall.current}
+    {#if !tooSmall.current}
       <div class="flex flex-col items-start mb-4 mr-4 whitespace-nowrap">
         {@render filters()}
       </div>

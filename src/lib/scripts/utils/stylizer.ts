@@ -1,6 +1,6 @@
 import { AssetFileFormat, UserRole } from "../api/DBTypes";
 
-export function stylizeAssetType(type: AssetFileFormat): string {
+export function getAssetTypeString(type: AssetFileFormat): string {
   switch (type) {
     case AssetFileFormat.Camera2Config_JSON:
       return ".json (Camera2)";
@@ -12,6 +12,31 @@ export function stylizeAssetType(type: AssetFileFormat): string {
       return ".json (HSV)";
     default:
       return `.${type.split('_')[1]}`;  // Default case for other formats
+  }
+}
+
+export function getAssetTypeData(format: AssetFileFormat): {
+  formatString: string;
+  typeString: string;
+  combinedString: string;
+} {
+  let type = format.split('_')[0].replaceAll('-', ' ');
+  let fileFormat = `.${format.split('_')[1].toLowerCase()}`;
+  let capitalType = type.charAt(0).toUpperCase() + type.slice(1);
+
+  switch (format) {
+    case AssetFileFormat.HSVConfig_JSON:
+      return {
+        formatString: fileFormat,
+        typeString: "HitScoreVisualizer",
+        combinedString: `HSV (${fileFormat})`,
+      };
+    default: 
+      return {
+        formatString: fileFormat,
+        typeString: capitalType,
+        combinedString: `${capitalType} (${fileFormat})`,
+      };
   }
 }
 
@@ -70,8 +95,9 @@ export function getRoleData(role: string): {
 export enum KnownSponsorUrls {
   Pixiv,
   Patreon,
-  KoFi,
+  KoFi
+}
 
-export function getSponserUrlData(sponsorUrl: string | string[] | null): {
+export function getSponserUrlData(sponsorUrl: string | string[] | null) {
 
 }

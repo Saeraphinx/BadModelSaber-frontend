@@ -6,6 +6,7 @@
   import { BadgeAlert, BadgeCheck, BadgeX, Download, DownloadCloud, InfoIcon } from "@lucide/svelte";
   import ApprovalDialog from "./ApprovalDialog.svelte";
   import { getAssetThumbnailUrl, getAssetUrl } from "$lib/scripts/utils/api";
+  import type { ClassValue } from "svelte/elements";
 
   let props: {
     asset: AssetPublicAPIv3;
@@ -13,25 +14,36 @@
     approvalDialog?: ApprovalDialog;
   } = $props();
 
-  let sizeClasses = $derived.by(() => {
+  let sizeClasses: {
+    size: ClassValue;
+    headerSize: ClassValue;
+  } = $derived.by(() => {
     switch (props.size) {
       case "linked":
-        return "w-24 h-24";
-      case "normal":
-        return "w-48 h-48";
-      case "large":
-        return "w-64 h-64";
+        return {
+          size: "w- h-24",
+          headerSize: "text-base",
+        };
       default:
-        return "w-48 h-48"; // Default to normal size
+      case "normal":
+        return {
+          size: "w-48 h-48",
+          headerSize: "text-lg"
+        };
+      case "large":
+        return {
+          size: "w-64 h-64",
+          headerSize: "text-xl"
+        };
     }
   });
   let downloadUrl = getAssetUrl(`${props.asset.fileHash}.${props.asset.fileFormat.split("_")[1].toLowerCase()}`);
 </script>
 
-<div class="relative {sizeClasses}">
+<div class="relative {sizeClasses.size}">
   <!-- Image -->
   <div>
-    <img src={getAssetThumbnailUrl(props.asset.icons[0])} alt={`Icon for ${props.asset.name}`} class="{sizeClasses} mb-4 rounded-2xl" />
+    <img src={getAssetThumbnailUrl(props.asset.icons[0])} alt={`Icon for ${props.asset.name}`} class="{sizeClasses.size} mb-4 rounded-2xl" />
   </div>
 
   <!-- Card Overlay -->
@@ -41,8 +53,8 @@
     <!-- Title Banner -->
     <div class="absolute top-0 left-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs w-full rounded-t-2xl">
       <div class="p-2 pl-4 flex flex-col">
-        <a href="/asset/{props.asset.id}" class={props.size == `normal` ? `text-2xl` : `text-lg`}>{props.asset.name}</a>
-        <a href="/user/{props.asset.uploader.id}" class="text-sm text-gray-500 dark:text-gray-400">{props.asset.uploader.displayName}</a>
+        <a href="/assets/{props.asset.id}" class="{sizeClasses.headerSize} hover:text-blue-300 transition-colors duration-300">{props.asset.name}</a>
+        <a href="/users/{props.asset.uploader.id}" class="text-sm text-gray-500 dark:text-gray-400">{props.asset.uploader.displayName}</a>
       </div>
       <!-- <div class="flex flex-row flex-wrap pb-2 pl-4 gap-1">
         
@@ -62,7 +74,7 @@
       <Button variant="ghost" href={downloadUrl} size="icon" title="Download">
         <Download />
       </Button>
-      <Button variant="ghost" href="" size="icon" title="OneClick Install">
+      <Button variant="ghost" href="" size="icon" title="OneClick Install" disabled>
         <DownloadCloud />
       </Button>
     </div>

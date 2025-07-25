@@ -15,6 +15,7 @@
 
   let currentIndexes: number[] = $state([0]);
   let items = $derived.by(() => api?.slideNodes() || []);
+  console.log("CarouselNavigator items", items);
   onMount(() => {
     if (api) {
       // Initialize currentIndexes based on the API state
@@ -33,12 +34,12 @@
   });
 </script>
 
-<div class="flex justify-between w-full mt-2">
+<div class="flex justify-between items-center w-full mt-2">
   <Button variant="ghost" size="icon" onclick={() => api?.scrollPrev()}>
     <ChevronLeftIcon class="w-5 h-5" />
   </Button>
   {#each items as idk, index}
-    <Button variant="ghost" size="icon" onclick={() => api?.scrollTo(index)}>
+    <Button variant="ghost" size="icon" class={items.length > 5 ? `not-md:size-4 not-md:p-1` : ``} onclick={() => api?.scrollTo(index)}>
       {#key currentIndexes}
         <span class="h-2 w-2 rounded-4xl transition-all duration-300 {currentIndexes.includes(index) ? `bg-gray-400 dark:bg-gray-200` : `bg-gray-200 dark:bg-gray-500`}"></span>
       {/key}

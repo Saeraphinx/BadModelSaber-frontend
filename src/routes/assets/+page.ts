@@ -1,15 +1,15 @@
-import { AssetType } from '$lib/scripts/api/DBTypes';
+import { AssetFileFormat } from '$lib/scripts/api/DBTypes';
 import type { PageLoad } from './$types';
 
 export const load = (async (data) => {
-  let type = data.url.searchParams.get('type') || 'all';
-  if ((Object.values(AssetType) as string[]).includes(type)) {
-    type = type as AssetType;
+  let fileFormat = data.url.searchParams.get('fileFormat') || 'all';
+  if ((Object.values(AssetFileFormat) as string[]).includes(fileFormat)) {
+    fileFormat = fileFormat as AssetFileFormat;
   } else {
-    type = 'all';
+    fileFormat = 'all';
   }
 
-  let typeCapital = type.split(' ').map(str => {
+  let typeCapital = fileFormat.split(`_`)[0].split(' ').map(str => {
     if (str.length === 0) {
       return ''; // Handle empty strings
     }
@@ -18,7 +18,7 @@ export const load = (async (data) => {
 
   return {
     pageData: {
-      type: type
+      fileFormat: fileFormat
     },
     pageMetadata: {
       title: `${typeCapital === `all` ? `Assets` : typeCapital} - ModelSaber`,

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { AssetFileFormat, AssetType, Status, UserRole, type AssetPublicAPIv3 } from "$lib/scripts/api/DBTypes.js";
+  import { Status, UserRole, type AssetPublicAPIv3 } from "$lib/scripts/api/DBTypes.js";
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
   import Badge from "$shadcn/components/ui/badge/badge.svelte";
   import Button from "$shadcn/components/ui/button/button.svelte";
@@ -11,19 +11,55 @@
   import { page } from "$app/state";
   import Skeleton from "$shadcn/components/ui/skeleton/skeleton.svelte";
   import CarouselNavigator from "$lib/components/generic/CarouselNavigator.svelte";
-  import { getAssetThumbnailUrl, getAssetUrl } from "$lib/scripts/utils/api.js";
+  import { fetchApi, getAssetThumbnailUrl, getAssetUrl } from "$lib/scripts/utils/api.js";
   import ApprovalPopup from "$lib/components/assets/ApprovalDialog.svelte";
+  import { onMount } from "svelte";
+  import { toast } from "svelte-sonner";
+  import { getAssetTypeData } from "$lib/scripts/utils/stylizer";
 
   let { data } = $props();
+  const asset = data.pageData;
+  const typeData = getAssetTypeData(asset.fileFormat);
 
-  let mobileView = new MediaQuery("min-width: 668px");
+  let mobileView = new MediaQuery("min-width: 700px");
   let iconApi = $state<CarouselAPI>();
   let relatedApi = $state<CarouselAPI>();
+  let authorApi = $state<CarouselAPI>();
 
   // loading related
   let isRelatedLoading = $state<boolean>(true);
   let relatedAssets = $state<AssetPublicAPIv3[]>([]);
+  let isAuthorLoading = $state<boolean>(true);
+  let authorAssets = $state<AssetPublicAPIv3[]>([]);
   let dialog: ApprovalPopup;
+
+  // load related & author assets
+  onMount(async () => {
+    if (asset.linkedIds.length > 0) {
+      fetchApi<{ [key: string]: AssetPublicAPIv3 }>(`/multi/assets?id=${data.pageData.linkedIds.slice(0, 20).join("&id=")}`, {}, data.fetch).then((res) => {
+        if (res.isError) {
+          toast.error(`Failed to load related assets: ${res.message}`);
+          isRelatedLoading = false;
+          return;
+        } else {
+          relatedAssets = res.data ? Object.values(res.data) : [];
+          isRelatedLoading = false;
+        }
+      });
+    } else {
+      isRelatedLoading = false;
+    }
+    fetchApi<{ assets: AssetPublicAPIv3[] }>(`/users/${data.pageData.uploader.id}/assets?limit=10`, {}, data.fetch).then((res) => {
+      if (res.isError) {
+        toast.error(`Failed to load author's assets: ${res.message}`);
+        isAuthorLoading = false;
+        return;
+      } else {
+        authorAssets = res.data?.assets.filter(i => i.id !== asset.id) || [];
+        isAuthorLoading = false;
+      }
+    });
+  });
 </script>
 
 {#snippet dT_Regular(title = "Title", value = "", includeDiv = true)}
@@ -49,8 +85,10 @@
   <!-- Shows upload date, license, etc in a table format -->
   <div class="mt-4 w-full bg-card rounded-lg border border-border p-4">
     <div class="flex flex-col gap-3">
-      {@render dT_Regular("Creator", `${data.pageData.uploader.displayName}`)}
-      {@render dT_Regular("Uploaded", new Date(data.pageData.createdAt).toLocaleString())}
+      <div class="flex justify-between items-center">
+        <span class="text-muted-foreground">Uploaded By</span>
+        <a href="/users/{data.pageData.uploader.id}" class="font-medium text-primary hover:underline">{data.pageData.uploader.displayName}</a>
+      </div>
       <div class="flex justify-between items-start">
         <span class="text-muted-foreground">Tags</span>
         <div class="flex flex-wrap gap-1 max-w-[200px] justify-end">
@@ -59,8 +97,7 @@
           {/each}
         </div>
       </div>
-      {@render dT_SingleBadge(`Type`, data.pageData.type.replace("-", " "), "outline")}
-      {@render dT_Regular("Format", data.pageData.fileFormat.toUpperCase())}
+      {@render dT_Regular(`Type`, typeData.combinedString)}
       {@render dT_Regular("File Size", `${(data.pageData.fileSize / 1024 / 1024).toFixed(2)} MB`)}
       {#if data.pageData.status !== Status.Approved}
         {@render dT_SingleBadge("Status", data.pageData.status, "destructive")}
@@ -86,6 +123,8 @@
           <a href={data.pageData.sourceUrl} target="_blank" rel="noopener noreferrer" class="font-medium text-primary hover:underline">View Source</a>
         </div>
       {/if}
+      {@render dT_Regular("Uploaded", new Date(data.pageData.createdAt).toLocaleString())}
+      {@render dT_Regular("Last Updated", new Date(data.pageData.updatedAt).toLocaleString())}
       {@render dT_Regular("File Hash", data.pageData.fileHash || "N/A")}
     </div>
   </div>
@@ -110,35 +149,41 @@
   </Carousel.Root>
 {/snippet}
 
-{#snippet assetCarousel(assets: AssetPublicAPIv3[], title = "Related Assets", ifNoFound = "No related assets found.")}
+{#snippet assetCarousel(assets: AssetPublicAPIv3[], isLoading: boolean, apiType: `author` | `related`, title = "Related Assets", ifNoFound = "No related assets found.", guessNumber = 5)}
   <div class="w-full">
     <span class="text-lg font-semibold">{title}</span>
-    {#if data.pageData.linkedIds.length === 0}
+    {#if assets.length === 0 && !isLoading}
       <span class="text-gray-500 dark:text-gray-400 w-full py-8 text-center">{ifNoFound}</span>
     {:else}
       <Carousel.Root
         class="w-full"
         setApi={(api) => {
-          relatedApi = api;
+          if (apiType === "related") {
+            relatedApi = api;
+          } else if (apiType === "author") {
+            authorApi = api;
+          }
         }}
         opts={{ loop: true }}>
         <Carousel.Content class="-ml-4">
-          {#if isRelatedLoading}
-            {#each data.pageData.linkedIds}
+          {#if isLoading}
+            {#each { length: guessNumber }}
               <Carousel.Item class="pl-4 basis-auto">
                 <Skeleton class="bg-gray-400/20 w-48 h-48 rounded-2xl" />
               </Carousel.Item>
             {/each}
           {:else}
             {#each assets as asset}
-              <Carousel.Item>
-                <AssetCard {asset} size="linked" />
+              <Carousel.Item class="pl-4 basis-auto">
+                <AssetCard {asset} size="normal" />
               </Carousel.Item>
             {/each}
           {/if}
         </Carousel.Content>
-        {#if relatedApi}
+        {#if apiType === "related" && relatedApi}
           <CarouselNavigator api={relatedApi} showOnlyOne={true} />
+        {:else if apiType === "author" && authorApi}
+          <CarouselNavigator api={authorApi} showOnlyOne={true} />
         {/if}
       </Carousel.Root>
     {/if}
@@ -159,9 +204,11 @@
     Report
   </Button>
   {#if data.user && data.user.roles.includes(UserRole.Moderator)}
-    <Button variant="secondary" onclick={() => {
-      dialog?.showDialog(data.pageData.id, data.pageData.name);
-    }}>
+    <Button
+      variant="secondary"
+      onclick={() => {
+        dialog?.showDialog(data.pageData.id, data.pageData.name);
+      }}>
       <BadgeAlert />
       Approval Dialog
     </Button>
@@ -180,7 +227,10 @@
       <Separator class="my-2 w-full" />
       <span class="text-lg text-gray-500 dark:text-gray-400">{data.pageData.description || "No description available."}</span>
       <Separator class="my-2 w-full" />
-      {@render assetCarousel(relatedAssets, "Related Assets:", "No related assets found.")}
+      {@render assetCarousel(relatedAssets, isRelatedLoading, `related`, "Related Assets:", "No related assets found.")}
+      <Separator class="my-4 w-full" />
+          {@render assetCarousel(authorAssets, isAuthorLoading, `author`, `Other assets by ${data.pageData.uploader.displayName}:`, "No other assets found.")}
+      <Separator class="my-4 w-full" />
       {@render dataTable()}
     </div>
   {:else}
@@ -202,9 +252,9 @@
           <span class="text-lg text-gray-500 dark:text-gray-400">{data.pageData.description || "No description available."}</span>
           <Separator class="my-4 w-full" />
           <!-- Related Assets -->
-          {@render assetCarousel(relatedAssets, "Related Assets:", "No related assets found.")}
+          {@render assetCarousel(relatedAssets, isRelatedLoading, `related`, "Related Assets:", "No related assets found.")}
           <Separator class="my-4 w-full" />
-          {@render assetCarousel([], `Other assets by ${data.pageData.uploader.displayName}:`, "No other assets found.")}
+          {@render assetCarousel(authorAssets, isAuthorLoading, `author`, `Other assets by ${data.pageData.uploader.displayName}:`, "No other assets found.")}
         </div>
       </div>
     </div>

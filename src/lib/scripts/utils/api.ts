@@ -27,6 +27,9 @@ type CustomFetchResponse<T> = Promise<{
 }>
 
 export async function fetchApi<T>(path: string, options?: RequestInit, customFetch: typeof fetch = fetch): CustomFetchResponse<T> {
+  if (!env.PUBLIC_API_URL) {
+    throw new Error("PUBLIC_API_URL is not defined in environment variables.");
+  }
   const url = getApiUrl(path);
   return customFetch(url, {
     ...options,
