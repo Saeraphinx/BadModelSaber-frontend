@@ -3,7 +3,7 @@ import type { AssetPublicAPIv3 } from "../api/DBTypes";
 export function generateOneClickUrl(asset: AssetPublicAPIv3): string {
   const baseUrl = "modelsaber://";
   let modelType: string;
-  switch (asset.fileFormat) {
+  switch (asset.type) {
     case `avatar_avatar`:
       modelType = "avatar";
       break;
@@ -16,7 +16,7 @@ export function generateOneClickUrl(asset: AssetPublicAPIv3): string {
     case `note_bloq`:
       modelType = "bloq";
     default:
-      modelType = asset.fileFormat
+      modelType = asset.type
       break;
   }
 

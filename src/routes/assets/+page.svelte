@@ -58,7 +58,7 @@
     if (!assetArray || assetArray.length === 0) return [];
 
     return assetArray.filter((asset) => {
-      let matchesFormat = selectedFileFormats.length === 0 || selectedFileFormats.includes(asset.fileFormat);
+      let matchesFormat = selectedFileFormats.length === 0 || selectedFileFormats.includes(asset.type);
       let matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(asset.status);
       return matchesFormat && matchesStatus;
     });

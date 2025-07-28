@@ -3,7 +3,7 @@
   import * as NavigationMenu from "$shadcn/components/ui/navigation-menu/index.js";
   import * as DropdownMenu from "$shadcn/components/ui/dropdown-menu/index.js";
   import { getContext, onMount } from "svelte";
-  import Button from "$shadcn/components/ui/button/button.svelte";
+  import Button, { buttonVariants } from "$shadcn/components/ui/button/button.svelte";
   import * as Avatar from "$shadcn/components/ui/avatar";
   import { BellDotIcon, BellIcon, FileBadgeIcon, GitBranchIcon, Link2Icon, LogIn, LogOutIcon, Menu, PlusIcon, Settings, SunIcon, UserIcon } from "@lucide/svelte";
   import type { Orientation } from "bits-ui";
@@ -16,11 +16,18 @@
   import { UserRole } from "$lib/scripts/api/DBTypes";
   import Separator from "$shadcn/components/ui/separator/separator.svelte";
   import { Badge } from "$shadcn/components/ui/badge";
+  import * as Sheet from "$shadcn/components/ui/sheet";
+  import Alert from "$lib/components/generic/Alert.svelte";
+  import * as Tabs from "$shadcn/components/ui/tabs";
+  import { Switch } from "$shadcn/components/ui/switch";
+  import { Label } from "$shadcn/components/ui/label";
+  import ScrollArea from "$shadcn/components/ui/scroll-area/scroll-area.svelte";
 
   let { data, children } = $props();
   let theme: `system` | `light` | `dark` = $state("system");
   let showFullBar = new MediaQuery("min-width: 750px");
   let pendingAlerts = $derived(data.alerts.length > 0);
+  let openAlerts = $state(false);
 
   // Alert count toast
   onMount(() => {
@@ -33,7 +40,7 @@
         action: {
           label: "View",
           onClick: () => {
-            window.location.href = "/alerts";
+            openAlerts = true;
           },
         },
       });
@@ -88,6 +95,8 @@
     { href: "https://bsmg.wiki/models", label: "Model Wiki" },
     { href: "/about", label: "PC Guide" },
   ];
+
+
 </script>
 
 {#snippet navbar_main(orientation = "vertical")}
@@ -102,17 +111,6 @@
       {/each}
     </NavigationMenu.List>
   </NavigationMenu.Root>
-{/snippet}
-
-{#snippet tiny_buttons()}
-  <Button variant="ghost" href="/upload" size="icon">
-    <PlusIcon />
-  </Button>
-  {#if data.user?.roles.includes(UserRole.Moderator)}
-    <Button variant="ghost" href="/approval" size="icon">
-      <FileBadgeIcon />
-    </Button>
-  {/if}
 {/snippet}
 
 <!-- Page title & favicon -->
@@ -132,7 +130,6 @@
       {@render navbar_main("horizontal")}
     {/if}
   </div>
-  <!-- Right Side -->
   <div class="flex items-center justify-end h-16 gap-4 {showFullBar.current ? `w-[18em] px-8` : `px-8`}">
     <!-- Hamburger menu for Small Screens -->
     {#if !showFullBar.current}
@@ -147,21 +144,13 @@
         <Popover.Content class="flex flex-col items-center justify-center w-auto">
           {@render navbar_main("vertical")}
           <Separator class="my-2 w-full" />
-          <div class="flex flex-row gap-2">
-            {@render tiny_buttons()}
-          </div>
         </Popover.Content>
       </Popover.Root>
     {/if}
     <!-- User Avatar or Login Button -->
     {#if data.user && data.user.id}
-      {#if showFullBar.current}
-        <div class="flex items-center gap-1">
-          {@render tiny_buttons()}
-        </div>
-      {/if}
       <DropdownMenu.Root>
-        <DropdownMenu.Trigger>
+        <DropdownMenu.Trigger class="p-2 rounded-full hover:bg-accent transition-colors duration-300">
           <Avatar.Root>
             <Avatar.Image src={data.user.avatarUrl} alt={data.user.displayName} />
             <Avatar.Fallback>{data.user.displayName}</Avatar.Fallback>
@@ -174,7 +163,7 @@
               Profile
             </DropdownMenu.Item>
           </a>
-          <a href="/alerts">
+          <button onclick={() => (openAlerts = true)}>
             <DropdownMenu.Item>
               <BellIcon />
               Alerts
@@ -183,6 +172,12 @@
                   {data.alerts.length}
                 </Badge>
               {/if}
+            </DropdownMenu.Item>
+          </button>
+          <a href="/create">
+            <DropdownMenu.Item>
+              <PlusIcon />
+              Create Asset
             </DropdownMenu.Item>
           </a>
           <DropdownMenu.Separator />
@@ -214,14 +209,46 @@
   {@render children()}
 </div>
 
+<!-- #region Alert Sidebar -->
+<Sheet.Root bind:open={openAlerts}>
+  <Sheet.Content class="grid grid-rows-[auto_1fr_auto] h-full">
+    <Sheet.Header>
+      <Sheet.Title class="text-lg font-semibold">Alerts</Sheet.Title>
+      <div class="flex flex-row justify-between items-center">
+        <Sheet.Description class="text-sm text-gray-500">
+          You have {data.alerts.length} unread alert{data.alerts.length === 1 ? `` : `s`}.
+        </Sheet.Description>
+        <div class="flex items-center space-x-2">
+          <Switch id="show-read" disabled />
+          <Label for="show-read">Show Read</Label>
+        </div>
+      </div>
+    </Sheet.Header>
+    <ScrollArea class="mx-4 min-h-0">
+      {#if data.alerts.length > 0}
+        {#each data.alerts as alert}
+          <Alert {alert} class="mb-2" />
+        {/each}
+      {:else}
+        <p class="text-gray-500">No alerts available.</p>
+      {/if}
+    </ScrollArea>
+    <Sheet.Footer>
+      <Sheet.Close class={buttonVariants({ variant: "outline" })}>Close</Sheet.Close>
+    </Sheet.Footer>
+  </Sheet.Content>
+</Sheet.Root>
+<!-- #endregion -->
+
 <Toaster
   richColors={true}
+  theme={theme}
   position="top-right"
   toastOptions={{
     closeButton: true,
     duration: 5000,
     classes: {
-      toast: "mt-10",
+      toast: "",
       title: "font-bold",
     },
   }} />

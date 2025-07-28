@@ -1,9 +1,21 @@
+
+export enum SponsorType {
+    GitHub = "github",
+    KoFi = "ko-fi",
+    Patreon = "patreon",
+}
+
+export type SponserUrl = {
+    platform: SponsorType;
+    url: string;
+}
+
 export type UserPublicAPIv3 = {
     id: string;
     username: string;
     displayName: string | null;
     bio: string | null;
-    sponsorUrl: string[] | null;
+    sponsorUrl: SponserUrl[] | null;
     avatarUrl: string;
     roles: UserRole[];
 }
@@ -47,7 +59,7 @@ export type AssetPublicAPIv3 = {
     id: number;
     oldId: string | null;
     linkedIds: LinkedAsset[]; // Array of linked asset IDs
-    fileFormat: AssetFileFormat;
+    type: AssetFileFormat;
     uploader: UserPublicAPIv3;
     icons: string[]; // Array of icon names
     name: string;
@@ -136,21 +148,44 @@ export interface Credit { // ${workDone} by ${userId.username}
     workDone: string; // Description of the work done by the user
 }
 
-export enum SystemTags {
-    CustomColors = 'custom-colors',
-    CustomTrails = 'custom-trails',
-    CustomBombs = 'custom-bombs',
-    CustomArrows = 'custom-arrows',
-    Reactive = 'reactive',
-    AudioLink = 'AudioLink',
-    Thin = 'thin',
-    FBT = 'fbt',
-    Cloth = 'cloth',
-    DynamicBones = 'dynamic-bones',
-    EQ = 'eq',
-    FirstPersonCompatible = 'first-person-compatible',
-    ShaderReplacement = 'shader-replacement',
-    NSFW = 'nsfw',
+export enum Tags {
+    // features
+    CustomColors = 'Custom Colors', // all really
+    CustomTrails = 'Custom Trails', //sabers
+    CustomBombs = 'Custom Bombs', // notes
+    CustomArrows = 'Custom Arrows', // notes
+
+    AudioLink = 'AudioLink', // sabers
+    Reactive = 'Reactive', // sabers/platforms
+
+    FBT = 'FBT', // asset
+    Cloth = 'Cloth',
+    DynamicBones = 'Dynamic Bones',
+    FirstPersonCompatible = 'First-Person Compatible',
+    Shaders = 'Shader Replacement',
+    NSFW = 'NSFW',
+
+    // types
+    Meme = 'Meme',
+    Thin = 'Thin', // sabers
+    Large = 'Large', // sabers
+    Acc = 'Acc',
+    Particles = 'Particles', // sabers
+    Sword = 'Sword', // sabers
+    Simple = 'Simple', // sabers
+    VideoGame = 'Video Game',
+    Pride = 'Pride',
+    Animated = 'Animated',
+    Pro = 'Pro', // avatars
+    Underswing = 'underswing', // hsv
+    TimeDependence = 'Time Dependence', // hsv
+    Hitsound = 'Hitsound', // sounds
+    BadHitsound = 'BadCut Hitsound', // sounds
+    MenuClick = 'Menu Click', // sounds
+    FirstPerson = 'First Person', // camera2
+    ThirdPerson = 'Third Person', // camera2
+
+    Contest = 'Contest',
 }
 // #endregion Asset Enums
 
@@ -175,4 +210,3 @@ export enum RequestType {
     Link = "link", // Request to add an asset to linkedIds that the author is not the uploader of
     Report = "report", // Request to report an asset for a specific reason
 }
-// #endregion Alert Enums

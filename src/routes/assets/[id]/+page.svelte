@@ -19,7 +19,7 @@
 
   let { data } = $props();
   const asset = data.pageData;
-  const typeData = getAssetTypeData(asset.fileFormat);
+  const typeData = getAssetTypeData(asset.type);
 
   let mobileView = new MediaQuery("min-width: 700px");
   let iconApi = $state<CarouselAPI>();

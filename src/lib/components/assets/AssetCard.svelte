@@ -37,7 +37,7 @@
         };
     }
   });
-  let downloadUrl = getAssetUrl(`${props.asset.fileHash}.${props.asset.fileFormat.split("_")[1].toLowerCase()}`);
+  let downloadUrl = getAssetUrl(`${props.asset.fileHash}.${props.asset.type.split("_")[1].toLowerCase()}`);
 </script>
 
 <div class="relative {sizeClasses.size}">
