@@ -16,7 +16,7 @@
   import { MediaQuery } from "svelte/reactivity";
   import * as Collapsible from "$shadcn/components/ui/collapsible";
   import { generateAssetSearchEngine } from "$lib/scripts/utils/serach";
-  import { onMount } from "svelte";
+  import { getContext, onMount } from "svelte";
   import ApprovalPopup from "$lib/components/assets/ApprovalDialog.svelte";
   import { fetchApi } from "$lib/scripts/utils/api.js";
   import { toast } from "svelte-sonner";
@@ -26,6 +26,7 @@
   // Generic Page Data
   let smallerIcons = new MediaQuery("max-width: 1000px");
   let tooSmall = new MediaQuery("max-width: 768px");
+  let konami = getContext("konami") as boolean;
 
   // Asset Data
   let assetsLoading = $state(false);
@@ -173,15 +174,15 @@
       </Collapsible.Content>
     </div>
   </Collapsible.Root>
-  {#if data.user && data.user.roles.includes(UserRole.Moderator)}
+  {#if (data.user && data.user.roles.includes(UserRole.Moderator)) || konami}
     <Collapsible.Root bind:open={filterStatusVisible} class="mt-4">
       <div class="flex flex-col bg-accent rounded-2xl min-w-56 w-full py-2 px-4">
         <Collapsible.Trigger class="flex items-center justify-between w-full">
           <span class="text-lg font-semibold">Status</span>
-          <ChevronRight class="h-4 w-4 transition-transform {data.user.roles.includes(UserRole.Moderator) ? `rotate-90` : ``}" />
+          <ChevronRight class="h-4 w-4 transition-transform {filterStatusVisible ? `rotate-90` : ``}" />
         </Collapsible.Trigger>
         <Collapsible.Content class="my-2">
-          {#each Object.values(Status) as status}
+          {#each konami ? [Status.Approved, Status.Pending] : Object.values(Status) as status}
             <div class="flex items-center space-x-2 py-1">
               <Checkbox
                 onCheckedChange={(e) => {

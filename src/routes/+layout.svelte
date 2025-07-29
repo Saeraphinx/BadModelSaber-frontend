@@ -2,7 +2,7 @@
   import "../app.css";
   import * as NavigationMenu from "$shadcn/components/ui/navigation-menu/index.js";
   import * as DropdownMenu from "$shadcn/components/ui/dropdown-menu/index.js";
-  import { getContext, onMount } from "svelte";
+  import { getContext, onMount, setContext } from "svelte";
   import Button, { buttonVariants } from "$shadcn/components/ui/button/button.svelte";
   import * as Avatar from "$shadcn/components/ui/avatar";
   import { BellDotIcon, BellIcon, FileBadgeIcon, GitBranchIcon, Link2Icon, LogIn, LogOutIcon, Menu, PlusIcon, Settings, SunIcon, UserIcon } from "@lucide/svelte";
@@ -28,7 +28,68 @@
   let showFullBar = new MediaQuery("min-width: 750px");
   let pendingAlerts = $derived(data.alerts.length > 0);
   let openAlerts = $state(false);
+  let activated = $state(false);
 
+  // #region Contexts
+  onMount(() => {
+    setContext("konami", activated);
+  });
+  // #endregion Contexts
+
+  // #region KonamiListener
+  onMount(() => {
+    if (data.user && data.user.id && data.user.roles.includes(UserRole.Banned)) return;
+    const konamiCode = [
+      "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown",
+      "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight",
+      "b", "a"
+    ];
+    
+    let inputSequence: string[] = [];
+    
+    const handleKeydown = (event: KeyboardEvent) => {
+      
+      if (event.repeat) return; // Ignore repeated key presses
+      if (!konamiCode.includes(event.key)) {
+        inputSequence = []; // Reset if an invalid key is pressed
+        return;
+      }
+
+      inputSequence.push(event.key);
+      if (inputSequence.length > konamiCode.length) {
+        inputSequence.shift();
+      }
+      
+      if (inputSequence.join("") === konamiCode.join("")) {
+        if ((!data.user || !data.user.id) || data.user.roles.includes(UserRole.Banned)) {
+          toast.error("You must be logged in to activate this feature.", {
+            duration: 5000,
+            closeButton: true,
+            dismissable: true,
+          });
+          return;
+        };
+        activated = true;
+        inputSequence = []; // Reset the sequence after activation
+        toast.success("Secret unlocked!", {
+          description: "You have activated some special features.",
+          duration: 5000,
+          closeButton: true,
+          dismissable: true,
+        });
+        //console.log("Konami Code activated!");
+      }
+    };
+    
+    document.addEventListener("keydown", handleKeydown);
+    
+    return () => {
+      document.removeEventListener("keydown", handleKeydown);
+    };
+  });
+  // #endregion KonamiListener
+
+  // #region Toasts
   // Alert count toast
   onMount(() => {
     if (pendingAlerts) {
@@ -64,6 +125,7 @@
       }
     }
   });
+  // #endregion Toasts
 
   // #region Theme
   onMount(() => {
@@ -95,8 +157,6 @@
     { href: "https://bsmg.wiki/models", label: "Model Wiki" },
     { href: "/about", label: "PC Guide" },
   ];
-
-
 </script>
 
 {#snippet navbar_main(orientation = "vertical")}

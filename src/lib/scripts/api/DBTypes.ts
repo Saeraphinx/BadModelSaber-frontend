@@ -1,4 +1,3 @@
-
 export enum SponsorType {
     GitHub = "github",
     KoFi = "ko-fi",
@@ -71,7 +70,7 @@ export type AssetPublicAPIv3 = {
     fileSize: number;
     status: Status;
     statusHistory: StatusHistory[];
-    credits: Credit[];
+    collaborators: string[];
     tags: string[];
     createdAt: Date;
     updatedAt: Date;
@@ -143,11 +142,6 @@ export enum LinkedAssetLinkType {
     Alternate = 'alternate', // e.g. an alternate version of the asset (e.g. a different color scheme)
 }
 
-export interface Credit { // ${workDone} by ${userId.username}
-    userId: string; // User ID of the person credited
-    workDone: string; // Description of the work done by the user
-}
-
 export enum Tags {
     // features
     CustomColors = 'Custom Colors', // all really
@@ -202,11 +196,19 @@ export enum AlertType {
     AssetApproved = "asset_approved", // Alert when an asset is approved
     AssetRejected = "asset_rejected", // Alert when an asset is rejected
     AssetRemoval = "asset_removal", // Alert when an asset is removed
-    Request = "request", // Alert for asset requests
+    RequestAccepted = "request_accepted", // Alert when a request is accepted
+    RequestDeclined = "request_declined", // Alert when a request is declined
 }
 
 export enum RequestType {
     Credit = "credit", // Request to credit the user for an asset
     Link = "link", // Request to add an asset to linkedIds that the author is not the uploader of
     Report = "report", // Request to report an asset for a specific reason
+}
+// #endregion Alert Enums
+
+export interface RequestMessage {
+    userId: string; // User ID of the person who sent the message
+    message: string; // The message content
+    timestamp: Date; // Timestamp of when the message was sent
 }

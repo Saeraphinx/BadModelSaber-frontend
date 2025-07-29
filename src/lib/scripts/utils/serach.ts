@@ -1,16 +1,16 @@
-import type { AssetPublicAPI } from "../api/DBTypes";
+import type { AssetPublicAPIv3 } from "../api/DBTypes";
 import { Index } from "flexsearch";
 
-export function generateAssetSearchEngine(assets: AssetPublicAPI[]) {
+export function generateAssetSearchEngine(assets: AssetPublicAPIv3[]) {
   const searchEngine = new Index({
     tokenize: "reverse"
   })
 
-  let returnMap = new Map<number, AssetPublicAPI>();
+  let returnMap = new Map<number, AssetPublicAPIv3>();
 
   assets.forEach((asset) => {
     returnMap.set(asset.id, asset);
-    searchEngine.add(asset.id, `${asset.name} ${asset.description} ${asset.author} ${asset.tags.join(" ")}`);
+    searchEngine.add(asset.id, `${asset.name} ${asset.description} ${asset.uploader} ${asset.tags.join(" ")}`);
   });
 
   return {
