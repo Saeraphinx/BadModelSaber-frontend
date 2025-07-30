@@ -20,13 +20,12 @@
   import ApprovalPopup from "$lib/components/assets/ApprovalDialog.svelte";
   import { fetchApi } from "$lib/scripts/utils/api.js";
   import { toast } from "svelte-sonner";
-  import { getAssetTypeString } from "$lib/scripts/utils/stylizer.js";
+  import { capitalizeFirstLetter, getAssetTypeString } from "$lib/scripts/utils/stylizer.js";
 
   let { data } = $props();
   // Generic Page Data
   let smallerIcons = new MediaQuery("max-width: 1000px");
   let tooSmall = new MediaQuery("max-width: 768px");
-  let konami = getContext("konami") as boolean;
 
   // Asset Data
   let assetsLoading = $state(false);
@@ -43,7 +42,7 @@
   let filterFileFormatVisible = $state<boolean>(true);
   let filterStatusVisible = $state<boolean>(true);
   let selectedFileFormats = $state<AssetFileFormat[]>([]);
-  let selectedStatuses = $state<Status[]>([]);
+  let selectedStatuses = $state<Status[]>([Status.Approved]);
   let assetFileFormats = $derived.by(() => {
     return Object.values(AssetFileFormat).map((format) => {
       let type = format.split("_")[0];
@@ -52,6 +51,13 @@
         label: getAssetTypeString(format),
       };
     });
+  });
+  let assetStatuses = $derived.by(() => {
+    if (!data.user) return [Status.Approved];
+    if (data.user.roles.includes(UserRole.Moderator) || data.user.roles.includes(UserRole.Admin)) {
+      return Object.values(Status);
+    }
+    return data.user.roles.includes(UserRole.Secret) ? [Status.Approved, Status.Pending] : [Status.Approved];
   });
 
   // Filters Themselves
@@ -174,7 +180,7 @@
       </Collapsible.Content>
     </div>
   </Collapsible.Root>
-  {#if (data.user && data.user.roles.includes(UserRole.Moderator)) || konami}
+  {#if assetStatuses.length > 1} <!-- Only show status filter if there are multiple statuses available for filtering -->
     <Collapsible.Root bind:open={filterStatusVisible} class="mt-4">
       <div class="flex flex-col bg-accent rounded-2xl min-w-56 w-full py-2 px-4">
         <Collapsible.Trigger class="flex items-center justify-between w-full">
@@ -182,7 +188,7 @@
           <ChevronRight class="h-4 w-4 transition-transform {filterStatusVisible ? `rotate-90` : ``}" />
         </Collapsible.Trigger>
         <Collapsible.Content class="my-2">
-          {#each konami ? [Status.Approved, Status.Pending] : Object.values(Status) as status}
+          {#each assetStatuses as status}
             <div class="flex items-center space-x-2 py-1">
               <Checkbox
                 onCheckedChange={(e) => {
@@ -193,9 +199,10 @@
                     selectedStatuses = selectedStatuses.filter((f) => f !== status);
                   }
                 }}
+                checked={selectedStatuses.includes(status)}
                 value={status}
                 id={status} />
-              <Label for={status} class="first-letter:capitalize">{status}</Label>
+              <Label for={status}>{capitalizeFirstLetter(status)}</Label>
             </div>
           {/each}
         </Collapsible.Content>

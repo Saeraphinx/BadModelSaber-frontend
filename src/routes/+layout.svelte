@@ -5,7 +5,7 @@
   import { getContext, onMount, setContext } from "svelte";
   import Button, { buttonVariants } from "$shadcn/components/ui/button/button.svelte";
   import * as Avatar from "$shadcn/components/ui/avatar";
-  import { BellDotIcon, BellIcon, FileBadgeIcon, GitBranchIcon, Link2Icon, LogIn, LogOutIcon, Menu, PlusIcon, Settings, SunIcon, UserIcon } from "@lucide/svelte";
+  import { BellDotIcon, BellIcon, FileBadgeIcon, GitBranchIcon, Link2Icon, LogIn, LogOutIcon, Menu, PlusIcon, Settings, SunIcon, TrafficConeIcon, UserIcon } from "@lucide/svelte";
   import type { Orientation } from "bits-ui";
   import { MediaQuery } from "svelte/reactivity";
   import * as Popover from "$shadcn/components/ui/popover";
@@ -22,33 +22,23 @@
   import { Switch } from "$shadcn/components/ui/switch";
   import { Label } from "$shadcn/components/ui/label";
   import ScrollArea from "$shadcn/components/ui/scroll-area/scroll-area.svelte";
+  import { fetchApi } from "$lib/scripts/utils/api";
+  import { invalidate, invalidateAll } from "$app/navigation";
 
   let { data, children } = $props();
   let theme: `system` | `light` | `dark` = $state("system");
   let showFullBar = new MediaQuery("min-width: 750px");
   let pendingAlerts = $derived(data.alerts.length > 0);
   let openAlerts = $state(false);
-  let activated = $state(false);
-
-  // #region Contexts
-  onMount(() => {
-    setContext("konami", activated);
-  });
-  // #endregion Contexts
 
   // #region KonamiListener
   onMount(() => {
     if (data.user && data.user.id && data.user.roles.includes(UserRole.Banned)) return;
-    const konamiCode = [
-      "ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown",
-      "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight",
-      "b", "a"
-    ];
-    
+    const konamiCode = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
+
     let inputSequence: string[] = [];
-    
+
     const handleKeydown = (event: KeyboardEvent) => {
-      
       if (event.repeat) return; // Ignore repeated key presses
       if (!konamiCode.includes(event.key)) {
         inputSequence = []; // Reset if an invalid key is pressed
@@ -59,34 +49,80 @@
       if (inputSequence.length > konamiCode.length) {
         inputSequence.shift();
       }
-      
+
       if (inputSequence.join("") === konamiCode.join("")) {
-        if ((!data.user || !data.user.id) || data.user.roles.includes(UserRole.Banned)) {
+        if (!data.user || !data.user.id || data.user.roles.includes(UserRole.Banned)) {
           toast.error("You must be logged in to activate this feature.", {
             duration: 5000,
             closeButton: true,
             dismissable: true,
           });
           return;
-        };
-        activated = true;
+        }
+        if (data.user.roles.includes(UserRole.Secret)) {
+          toast.info("You have already activated the secret features.", {
+            description: "If you want to disable them, disable them in your user settings.",
+            duration: 5000,
+            closeButton: true,
+            dismissable: true,
+          });
+          return;
+        }
         inputSequence = []; // Reset the sequence after activation
-        toast.success("Secret unlocked!", {
-          description: "You have activated some special features.",
-          duration: 5000,
-          closeButton: true,
+        toast.info("Secret features unlocked!", {
+          description:
+            "If you enable these features, you will be able to access hidden content and features on ModelSaber. ModelSaber is not responsible for any damage caused by this content.",
+          duration: 60000,
           dismissable: true,
+          action: {
+            label: "Enable",
+            onClick: () => {
+              fetchApi("/konami/add", {
+                method: "POST",
+              })
+                .then(() => {
+                  toast.success("Secret features enabled!", {
+                    description: "You can now access hidden content and features on ModelSaber. Use responsibly!",
+                    closeButton: true,
+                  });
+                  invalidateAll(); // Refresh user data to reflect new roles
+                })
+                .catch((error) => {
+                  toast.error("Failed to enable secret features.", {
+                    description: error.message,
+                  });
+                });
+              console.log("Secret features enabled!");
+            },
+          },
         });
         //console.log("Konami Code activated!");
       }
     };
-    
+
     document.addEventListener("keydown", handleKeydown);
-    
+
     return () => {
       document.removeEventListener("keydown", handleKeydown);
     };
   });
+
+  function removeSecret() {
+    fetchApi("/konami/remove", {
+      method: "POST",
+    })
+      .then(() => {
+        toast.info("Secret features disabled!", {
+          description: "Access to hidden content and features has been revoked.",
+        });
+        invalidateAll(); // Refresh user data
+      })
+      .catch((error) => {
+        toast.error("Failed to disable secret features.", {
+          description: error.message,
+        });
+      });
+  }
   // #endregion KonamiListener
 
   // #region Toasts
@@ -216,7 +252,7 @@
             <Avatar.Fallback>{data.user.displayName}</Avatar.Fallback>
           </Avatar.Root>
         </DropdownMenu.Trigger>
-        <DropdownMenu.Content class="mr-12">
+        <DropdownMenu.Content class="mr-12 flex flex-col">
           <a href="/users/me">
             <DropdownMenu.Item>
               <UserIcon />
@@ -234,6 +270,14 @@
               {/if}
             </DropdownMenu.Item>
           </button>
+          {#if data.user.roles.includes(UserRole.Secret)}
+            <button onclick={removeSecret}>
+              <DropdownMenu.Item>
+                <TrafficConeIcon class="text-orange-500" />
+                Disable Secret Features
+              </DropdownMenu.Item>
+            </button>
+          {/if}
           <a href="/create">
             <DropdownMenu.Item>
               <PlusIcon />
@@ -302,7 +346,7 @@
 
 <Toaster
   richColors={true}
-  theme={theme}
+  {theme}
   position="top-right"
   toastOptions={{
     closeButton: true,

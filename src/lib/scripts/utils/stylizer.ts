@@ -1,5 +1,11 @@
 import { AssetFileFormat, UserRole } from "../api/DBTypes";
 
+export function capitalizeFirstLetter(str: any): string {
+  if (!str) return ``; // Handle empty strings
+  if (typeof str !== 'string') return ``; // Ensure input is a string
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 export function getAssetTypeString(type: AssetFileFormat): string {
   switch (type) {
     case AssetFileFormat.Camera2Config_JSON:

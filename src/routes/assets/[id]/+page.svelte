@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Status, UserRole, type AssetPublicAPIv3 } from "$lib/scripts/api/DBTypes.js";
+  import { Status, Tags, UserRole, type AssetPublicAPIv3 } from "$lib/scripts/api/DBTypes.js";
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
   import Badge from "$shadcn/components/ui/badge/badge.svelte";
   import Button from "$shadcn/components/ui/button/button.svelte";
@@ -16,6 +16,7 @@
   import { onMount } from "svelte";
   import { toast } from "svelte-sonner";
   import { getAssetTypeData } from "$lib/scripts/utils/stylizer";
+  import TagBadge from "$lib/components/assets/TagBadge.svelte";
 
   let { data } = $props();
   const asset = data.pageData;
@@ -93,7 +94,7 @@
         <span class="text-muted-foreground">Tags</span>
         <div class="flex flex-wrap gap-1 max-w-[200px] justify-end">
           {#each data.pageData.tags as tag}
-            <Badge variant="secondary" class="text-xs">{tag}</Badge>
+            <TagBadge tag={tag as Tags} />
           {/each}
         </div>
       </div>
