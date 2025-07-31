@@ -6,17 +6,19 @@
   import * as Carousel from "$shadcn/components/ui/carousel/index.js";
   import Separator from "$shadcn/components/ui/separator/separator.svelte";
   import { type CarouselAPI } from "$shadcn/components/ui/carousel/context.js";
-  import { BadgeAlert, Car, ChevronLeftIcon, ChevronRightIcon, CircleDot, CircleIcon, CloudDownloadIcon, DotIcon, DownloadIcon, MegaphoneIcon } from "@lucide/svelte";
+  import { BadgeAlert, Car, ChevronLeftIcon, ChevronRightIcon, CircleDot, CircleIcon, CloudDownloadIcon, DotIcon, DownloadIcon, Edit, MegaphoneIcon } from "@lucide/svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { page } from "$app/state";
   import Skeleton from "$shadcn/components/ui/skeleton/skeleton.svelte";
   import CarouselNavigator from "$lib/components/generic/CarouselNavigator.svelte";
-  import { fetchApi, getAssetThumbnailUrl, getAssetUrl } from "$lib/scripts/utils/api.js";
+  import { fetchApiSafe, getAssetThumbnailUrl, getAssetUrl } from "$lib/scripts/utils/api.js";
   import ApprovalPopup from "$lib/components/assets/ApprovalDialog.svelte";
   import { onMount } from "svelte";
   import { toast } from "svelte-sonner";
   import { getAssetTypeData } from "$lib/scripts/utils/stylizer";
   import TagBadge from "$lib/components/assets/TagBadge.svelte";
+  import Input from "$shadcn/components/ui/input/input.svelte";
+  import Textarea from "$shadcn/components/ui/textarea/textarea.svelte";
 
   let { data } = $props();
   const asset = data.pageData;
@@ -26,18 +28,31 @@
   let iconApi = $state<CarouselAPI>();
   let relatedApi = $state<CarouselAPI>();
   let authorApi = $state<CarouselAPI>();
+  let dialog: ApprovalPopup;
 
-  // loading related
+  //#region Editing
+  let allowedToEdit = $derived.by(() => {
+    if (!data.user) return false;
+    if (data.user.roles.includes(UserRole.Admin)) return true;
+    if (data.user.roles.includes(UserRole.Moderator)) return true;
+    if (data.pageData.uploader.id === data.user.id) return true;
+    return false;
+  });
+  let isEditing = $state<boolean>(true);
+  let editName = $state<string>(asset.name);
+  let editDescription = $state<string>(asset.description || "");
+  let editTags = $state<Tags[]>(asset.tags as Tags[] || []);
+  //#endregion
+
+  // #region Loading
   let isRelatedLoading = $state<boolean>(true);
   let relatedAssets = $state<AssetPublicAPIv3[]>([]);
   let isAuthorLoading = $state<boolean>(true);
   let authorAssets = $state<AssetPublicAPIv3[]>([]);
-  let dialog: ApprovalPopup;
 
-  // load related & author assets
   onMount(async () => {
     if (asset.linkedIds.length > 0) {
-      fetchApi<{ [key: string]: AssetPublicAPIv3 }>(`/multi/assets?id=${data.pageData.linkedIds.slice(0, 20).join("&id=")}`, {}, data.fetch).then((res) => {
+      fetchApiSafe<{ [key: string]: AssetPublicAPIv3 }>(`/multi/assets?id=${data.pageData.linkedIds.slice(0, 20).join("&id=")}`, {}, data.fetch).then((res) => {
         if (res.isError) {
           toast.error(`Failed to load related assets: ${res.message}`);
           isRelatedLoading = false;
@@ -50,7 +65,7 @@
     } else {
       isRelatedLoading = false;
     }
-    fetchApi<{ assets: AssetPublicAPIv3[] }>(`/users/${data.pageData.uploader.id}/assets?limit=10`, {}, data.fetch).then((res) => {
+    fetchApiSafe<{ assets: AssetPublicAPIv3[] }>(`/users/${data.pageData.uploader.id}/assets?limit=10`, {}, data.fetch).then((res) => {
       if (res.isError) {
         toast.error(`Failed to load author's assets: ${res.message}`);
         isAuthorLoading = false;
@@ -61,6 +76,7 @@
       }
     });
   });
+  // #endregion
 </script>
 
 {#snippet dT_Regular(title = "Title", value = "", includeDiv = true)}
@@ -192,27 +208,51 @@
 {/snippet}
 
 {#snippet buttons()}
-  <Button variant="default" href={getAssetUrl(`unknown`)} disabled>
-    <DownloadIcon />
-    Download
-  </Button>
-  <Button variant="outline" href="" disabled>
-    <CloudDownloadIcon />
-    OneClick Install
-  </Button>
-  <Button variant="destructive" href="/assets/{data.pageData.id}/report" disabled>
-    <MegaphoneIcon />
-    Report
-  </Button>
-  {#if data.user && data.user.roles.includes(UserRole.Moderator)}
-    <Button
-      variant="secondary"
-      onclick={() => {
-        dialog?.showDialog(data.pageData.id, data.pageData.name);
-      }}>
-      <BadgeAlert />
-      Approval Dialog
+  {#if !isEditing}
+    <Button variant="default" href={getAssetUrl(`unknown`)} disabled>
+      <DownloadIcon />
+      Download
     </Button>
+    <Button variant="outline" href="" disabled>
+      <CloudDownloadIcon />
+      OneClick Install
+    </Button>
+    <Button variant="destructive" href="/assets/{data.pageData.id}/report" disabled>
+      <MegaphoneIcon />
+      Report
+    </Button>
+    {#if data.user && data.user.roles.includes(UserRole.Moderator)}
+      <Button
+        variant="secondary"
+        onclick={() => {
+          dialog?.showDialog(data.pageData.id, data.pageData.name);
+        }}>
+        <BadgeAlert />
+        Approval Dialog
+      </Button>
+    {/if}
+  {/if}
+  {#if allowedToEdit}
+    {#if isEditing}
+        <Button variant="default">
+          Submit
+        </Button>
+        <Button variant="secondary" onclick={() => {
+          isEditing = !isEditing;
+          editName = asset.name;
+          editDescription = asset.description || "";
+          editTags = asset.tags as Tags[] || [];
+        }}>
+          Discard Changes
+        </Button>
+    {:else}
+      <Button variant="secondary" onclick={() => {
+        isEditing = !isEditing;
+      }}>
+        <Edit />
+        Edit
+      </Button>
+    {/if}
   {/if}
 {/snippet}
 
@@ -220,7 +260,11 @@
   {#if !mobileView.current}
     <!-- Mobile View -->
     <div class="flex flex-col items-center w-full">
-      <span class="text-3xl font-bold">{data.pageData.name}</span>
+      {#if isEditing}
+        <Input type="text" bind:value={editName} placeholder="Asset Name" class="w-full mb-2" />
+      {:else}
+        <span class="text-3xl font-bold my-2">{data.pageData.name}</span>
+      {/if}
       {@render iconCarousel()}
       <div class="flex flex-row gap-2 mt-4 flex-wrap justify-center">
         {@render buttons()}
@@ -244,13 +288,21 @@
       <div class="flex flex-col ml-4 mt-2 max-w-[60%]">
         <div class="flex flex-col">
           <!-- Title & Action Buttons? -->
-          <span class="text-3xl font-bold">{data.pageData.name}</span>
-          <div class="flex flex-row gap-2 mt-4">
-            {@render buttons()}
-          </div>
+          {#if isEditing}
+            <Input type="text" bind:value={editName} placeholder="Asset Name" class="w-full mb-2" />
+          {:else}
+            <span class="text-3xl font-bold">{data.pageData.name}</span>
+          {/if}
+          <div class="flex flex-row gap-2 mt-4 flex-wrap">
+        {@render buttons()}
+      </div>
           <Separator class="my-4 w-full" />
           <!-- Description -->
-          <span class="text-lg text-gray-500 dark:text-gray-400">{data.pageData.description || "No description available."}</span>
+          {#if isEditing}
+            <Textarea bind:value={editDescription} placeholder="Asset Description" class="w-full mb-2 min-h-64" />
+          {:else}
+            <span class="text-lg text-gray-500 dark:text-gray-400">{data.pageData.description || "No description available."}</span>
+          {/if}
           <Separator class="my-4 w-full" />
           <!-- Related Assets -->
           {@render assetCarousel(relatedAssets, isRelatedLoading, `related`, "Related Assets:", "No related assets found.")}

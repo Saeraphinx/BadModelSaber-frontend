@@ -1,5 +1,5 @@
 import { AssetFileFormat, LinkedAssetLinkType, Status, type AssetPublicAPIv3, type UserPublicAPIv3 } from '$lib/scripts/api/DBTypes';
-import { fetchApi } from '$lib/scripts/utils/api';
+import { fetchApiSafe } from '$lib/scripts/utils/api';
 import { error } from '@sveltejs/kit';
 import type { PageLoad } from './$types';
 
@@ -12,7 +12,7 @@ export const load = (async ({ fetch, params, parent }) => {
     }
     userData = user;
   } else {
-    let user = await fetchApi(`/users/${params.id}`, {
+    let user = await fetchApiSafe(`/users/${params.id}`, {
       method: 'GET',
       credentials: 'include',
     }, fetch);
@@ -24,7 +24,7 @@ export const load = (async ({ fetch, params, parent }) => {
     userData = await user.data as UserPublicAPIv3;
   }
 
-  let assets = await fetchApi<{assets: AssetPublicAPIv3[]}>(`/users/${userData.id}/assets`, {
+  let assets = await fetchApiSafe<{assets: AssetPublicAPIv3[]}>(`/users/${userData.id}/assets`, {
     method: 'GET',
     credentials: 'include',
   }, fetch);

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Status } from "$lib/scripts/api/DBTypes";
-  import { fetchApi } from "$lib/scripts/utils/api";
+  import { fetchApiSafe } from "$lib/scripts/utils/api";
   import { Button, buttonVariants } from "$shadcn/components/ui/button/index.js";
   import * as Dialog from "$shadcn/components/ui/dialog/index.js";
   import { Input } from "$shadcn/components/ui/input/index.js";
@@ -28,7 +28,7 @@
 
   function handleSubmit() {
     console.log(`Updating asset ${id} (${name}) to status ${selectedStatus} with reason: ${reason}`);
-    let res = fetchApi(`/approvals/assets/${id}`, {
+    let res = fetchApiSafe(`/approvals/assets/${id}`, {
       method: 'POST',
       credentials: 'include',
       body: JSON.stringify({

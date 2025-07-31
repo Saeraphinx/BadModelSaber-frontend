@@ -8,20 +8,28 @@
 
   let pageUserOmitted = $derived.by(() => {
     return {
-      ...page,
+      url: page.url,
+      status: page.status,
+      error: page.error,
+      route: page.route,
+      params: page.params,
       data: {
-        ...page.data,
         user: {
           id: page.data.user?.id,
           displayName: page.data.user?.displayName,
           roles: page.data.user?.roles,
         },
+        alerts: page.data.alerts?.map(alert => alert.id) || [],
+        requests: {
+          incoming: page.data.requests?.incoming.map(req => req.id) || [],
+          outgoing: page.data.requests?.outgoing.map(req => req.id) || [],
+        }
       },
     };
   });
 </script>
 
-<div class="flex flex-col h-screen-nav overflow-auto items-center justify-center">
+<div class="flex flex-col min-h-screen-nav h-screen-nav items-center overflow-scroll justify-center">
   <p class="text-3xl font-semibold mb-4">Error</p>
   {#if page.status === 404}
     <p class="text-lg text-muted-foreground mb-4">We couldn't find this page :(</p>
@@ -50,7 +58,7 @@
       <Accordion.Item value="item-1">
       <Accordion.Trigger>Debug Info</Accordion.Trigger>
       <Accordion.Content>
-        <pre class="bg-gray-100 dark:bg-gray-900 p-4 rounded-lg overflow-x-auto text-xs"><code>{JSON.stringify(pageUserOmitted, null, 2).trim()}</code></pre>
+        <pre class="bg-gray-100 dark:bg-gray-900 h-96 p-4 rounded-lg overflow-x-auto text-xs"><code>{JSON.stringify(pageUserOmitted, null, 2).trim()}</code></pre>
       </Accordion.Content>
       </Accordion.Item>
     </Accordion.Root>

@@ -18,7 +18,7 @@
   import { generateAssetSearchEngine } from "$lib/scripts/utils/serach";
   import { getContext, onMount } from "svelte";
   import ApprovalPopup from "$lib/components/assets/ApprovalDialog.svelte";
-  import { fetchApi } from "$lib/scripts/utils/api.js";
+  import { fetchApiSafe } from "$lib/scripts/utils/api.js";
   import { toast } from "svelte-sonner";
   import { capitalizeFirstLetter, getAssetTypeString } from "$lib/scripts/utils/stylizer.js";
 
@@ -79,7 +79,7 @@
   // Asset Fetch
   async function fetchAssets() {
     assetsLoading = true;
-    let assets = await fetchApi<{ assets: AssetPublicAPIv3[] }>(`/assets`, {}, data.fetch)
+    let assets = await fetchApiSafe<{ assets: AssetPublicAPIv3[] }>(`/assets`, {}, data.fetch)
       .then((response) => {
         if (response.isError) {
           return;

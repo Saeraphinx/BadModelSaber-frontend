@@ -5,7 +5,7 @@
   import { getContext, onMount, setContext } from "svelte";
   import Button, { buttonVariants } from "$shadcn/components/ui/button/button.svelte";
   import * as Avatar from "$shadcn/components/ui/avatar";
-  import { BellDotIcon, BellIcon, FileBadgeIcon, GitBranchIcon, Link2Icon, LogIn, LogOutIcon, Menu, PlusIcon, Settings, SunIcon, TrafficConeIcon, UserIcon } from "@lucide/svelte";
+  import { BellDotIcon, BellIcon, FileBadgeIcon, GitBranchIcon, Link2Icon, LogIn, LogOutIcon, Menu, MessageCircleQuestionIcon, PlusIcon, Settings, SunIcon, TrafficConeIcon, UserIcon } from "@lucide/svelte";
   import type { Orientation } from "bits-ui";
   import { MediaQuery } from "svelte/reactivity";
   import * as Popover from "$shadcn/components/ui/popover";
@@ -13,7 +13,7 @@
   import { Toaster } from "$shadcn/components/ui/sonner";
   import { toast, type ExternalToast } from "svelte-sonner";
   import { env } from "$env/dynamic/public";
-  import { UserRole } from "$lib/scripts/api/DBTypes";
+  import { UserRole, type AlertPublicAPIv3 } from "$lib/scripts/api/DBTypes";
   import Separator from "$shadcn/components/ui/separator/separator.svelte";
   import { Badge } from "$shadcn/components/ui/badge";
   import * as Sheet from "$shadcn/components/ui/sheet";
@@ -22,15 +22,12 @@
   import { Switch } from "$shadcn/components/ui/switch";
   import { Label } from "$shadcn/components/ui/label";
   import ScrollArea from "$shadcn/components/ui/scroll-area/scroll-area.svelte";
-  import { fetchApi } from "$lib/scripts/utils/api";
+  import { fetchApiSafe } from "$lib/scripts/utils/api";
   import { invalidate, invalidateAll } from "$app/navigation";
 
   let { data, children } = $props();
   let theme: `system` | `light` | `dark` = $state("system");
   let showFullBar = new MediaQuery("min-width: 750px");
-  let pendingAlerts = $derived(data.alerts.length > 0);
-  let openAlerts = $state(false);
-
   // #region KonamiListener
   onMount(() => {
     if (data.user && data.user.id && data.user.roles.includes(UserRole.Banned)) return;
@@ -77,7 +74,7 @@
           action: {
             label: "Enable",
             onClick: () => {
-              fetchApi("/konami/add", {
+              fetchApiSafe("/konami/add", {
                 method: "POST",
               })
                 .then(() => {
@@ -108,7 +105,7 @@
   });
 
   function removeSecret() {
-    fetchApi("/konami/remove", {
+    fetchApiSafe("/konami/remove", {
       method: "POST",
     })
       .then(() => {
@@ -187,6 +184,29 @@
   }
   // #endregion Theme
 
+  // #region Alerts
+  let pendingAlerts = $derived(data.alerts.length > 0);
+  let openAlerts = $state(false);
+  let showRead = $state(false);
+  async function updateAlerts() {
+    const response = await fetchApiSafe<AlertPublicAPIv3[]>(`/alerts?read=${showRead}`, {
+      method: "GET",
+    }, data.fetch).then((res) => {
+      if (res.isError) {
+        toast.error("Failed to fetch read alerts.", {
+          description: res.message,
+        });
+        return [];
+      }
+      data.alerts = res.data;
+    }).catch((error) => {
+      toast.error("Failed to fetch read alerts.", {
+        description: error.message,
+      });
+      return [];
+    });
+  }
+  // #endregion Alerts
   const links = [
     { href: "/", label: "Home" },
     { href: "/assets", label: "Assets" },
@@ -252,7 +272,7 @@
             <Avatar.Fallback>{data.user.displayName}</Avatar.Fallback>
           </Avatar.Root>
         </DropdownMenu.Trigger>
-        <DropdownMenu.Content class="mr-12 flex flex-col">
+        <DropdownMenu.Content class="mr-10 flex flex-col">
           <a href="/users/me">
             <DropdownMenu.Item>
               <UserIcon />
@@ -270,6 +290,12 @@
               {/if}
             </DropdownMenu.Item>
           </button>
+          <a href="/requests">
+            <DropdownMenu.Item>
+              <MessageCircleQuestionIcon />
+              Requests
+            </DropdownMenu.Item>
+          </a>
           {#if data.user.roles.includes(UserRole.Secret)}
             <button onclick={removeSecret}>
               <DropdownMenu.Item>
@@ -323,7 +349,7 @@
           You have {data.alerts.length} unread alert{data.alerts.length === 1 ? `` : `s`}.
         </Sheet.Description>
         <div class="flex items-center space-x-2">
-          <Switch id="show-read" disabled />
+          <Switch id="show-read" bind:checked={showRead} onCheckedChange={updateAlerts}/>
           <Label for="show-read">Show Read</Label>
         </div>
       </div>

@@ -1,7 +1,9 @@
 <script lang="ts">
   import { AlertType, type AlertPublicAPIv3 } from '$lib/scripts/api/DBTypes';
+  import { fetchApi } from '$lib/scripts/utils/api';
   import Button from '$shadcn/components/ui/button/button.svelte';
   import { cn } from '$shadcn/utils';
+  import { toast } from 'svelte-sonner';
   import type { HTMLAttributes } from 'svelte/elements';
 
   let {
@@ -16,18 +18,30 @@
 
   let bgColor = $derived.by(() => {
     switch (alert.type) {
+      case AlertType.RequestAccepted:
       case AlertType.AssetApproved:
         return 'bg-green-800/20';
       case AlertType.AssetRejected:
         return 'bg-red-800/20';
+      case AlertType.RequestDeclined:
       case AlertType.AssetRemoval:
         return 'bg-yellow-800/20';
-      case AlertType.Request:
-        return 'bg-blue-800/20';
       default:
         return 'bg-gray-800';
     }
   });
+
+  function markRead() {
+    isVisible = false;
+    fetchApi(`/alerts/${alert.id}/read`, {
+      method: 'POST',
+    }).catch((error) => {
+      console.error('Failed to mark alert as read:', error);
+      toast.error('Failed to mark alert as read.', {
+        description: error.message,
+      });
+    });
+  }
 </script>
 
 <div class={cn(`${bgColor} ${isVisible ? `` : `hidden`} rounded-xl p-4`,className)} {...restProps}>
