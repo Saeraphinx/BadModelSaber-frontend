@@ -1,12 +1,15 @@
 <script lang="ts">
   import { assets } from "$app/paths";
-  import { Status, type AssetPublicAPIv3, type UserPublicAPIv3 } from "$lib/scripts/api/DBTypes";
+  import { Status, Tags, type AssetPublicAPIv3, type UserPublicAPIv3 } from "$lib/scripts/api/DBTypes";
   import { Badge } from "$shadcn/components/ui/badge";
   import Button from "$shadcn/components/ui/button/button.svelte";
   import { BadgeAlert, BadgeCheck, BadgeX, Download, DownloadCloud, InfoIcon } from "@lucide/svelte";
   import ApprovalDialog from "./ApprovalDialog.svelte";
   import { getAssetThumbnailUrl, getAssetUrl } from "$lib/scripts/utils/api";
   import type { ClassValue } from "svelte/elements";
+  import { generateOneClickUrl } from "$lib/scripts/utils/oneclick";
+  import { invalidate } from "$app/navigation";
+  import { page } from "$app/state";
 
   let props: {
     asset: AssetPublicAPIv3;
@@ -38,12 +41,13 @@
     }
   });
   let downloadUrl = getAssetUrl(`${props.asset.fileHash}.${props.asset.type.split("_")[1].toLowerCase()}`);
+  let oneClickUrl = generateOneClickUrl(props.asset);
 </script>
 
 <div class="relative {sizeClasses.size}">
   <!-- Image -->
-  <div>
-    <img src={getAssetThumbnailUrl(props.asset.icons[0])} alt={`Icon for ${props.asset.name}`} class="{sizeClasses.size} mb-4 rounded-2xl" />
+  <div class="overflow-hidden rounded-2xl mb-4">
+    <img src={getAssetThumbnailUrl(props.asset.icons[0])} alt={`Icon for ${props.asset.name}`} class="{sizeClasses.size} rounded-2xl {props.asset.tags.includes(Tags.NSFW) ? `blur-xl` : ``}" />
   </div>
 
   <!-- Card Overlay -->
@@ -53,7 +57,7 @@
     <!-- Title Banner -->
     <div class="absolute top-0 left-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs w-full rounded-t-2xl">
       <div class="p-2 pl-4 flex flex-col">
-        <a href="/assets/{props.asset.id}" class="{sizeClasses.headerSize} hover:text-blue-300 transition-colors duration-300">{props.asset.name}</a>
+        <a href="/assets/{props.asset.id}" class="{sizeClasses.headerSize} hover:text-blue-300 transition-colors duration-300" onclick={() => invalidate(page.url)}>{props.asset.name}</a>
         <a href="/users/{props.asset.uploader.id}" class="text-sm text-gray-500 dark:text-gray-400">{props.asset.uploader.displayName}</a>
       </div>
       <!-- <div class="flex flex-row flex-wrap pb-2 pl-4 gap-1">
@@ -68,13 +72,13 @@
           <BadgeAlert />
         </Button>
       {/if}
-      <Button variant="ghost" href="/assets/{props.asset.id}" size="icon" title="Goto Asset Page">
+      <Button variant="ghost" data-sveltekit-reload href="/assets/{props.asset.id}" size="icon" title="Goto Asset Page">
         <InfoIcon />
       </Button>
       <Button variant="ghost" href={downloadUrl} size="icon" title="Download">
         <Download />
       </Button>
-      <Button variant="ghost" href="" size="icon" title="OneClick Install" disabled>
+      <Button variant="ghost" href={oneClickUrl} size="icon" title="OneClick Install">
         <DownloadCloud />
       </Button>
     </div>

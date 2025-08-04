@@ -4,6 +4,7 @@
   import { Button } from "$shadcn/components/ui/button";
   import Separator from "$shadcn/components/ui/separator/separator.svelte";
   import { CodeXmlIcon, HomeIcon } from "@lucide/svelte";
+  import { onMount } from "svelte";
   import { toast } from "svelte-sonner";
 
   let pageUserOmitted = $derived.by(() => {
@@ -27,15 +28,30 @@
       },
     };
   });
+
+  let subtitle = $derived.by(() => {
+    if (page.error?.subtitle) {
+      return page.error.subtitle;
+    } else if (page.status === 404) {
+      return "We couldn't find this page :(";
+    } else if (page.status === 403) {
+      return "You do not have permission to view this page.";
+    } else {
+      return "An unexpected error occurred :(";
+    }
+  });
+
+  onMount(() => {
+    if (page.error?.redirectToHome) {
+      window.location.href = "/";
+      return;
+    }
+  });
 </script>
 
 <div class="flex flex-col min-h-screen-nav h-screen-nav items-center overflow-scroll justify-center">
-  <p class="text-3xl font-semibold mb-4">Error</p>
-  {#if page.status === 404}
-    <p class="text-lg text-muted-foreground mb-4">We couldn't find this page :(</p>
-  {:else}
-    <p class="text-lg text-muted-foreground mb-4">An unexpected error occurred :(</p>
-  {/if}
+  <p class="text-3xl font-semibold mb-4">{page.error?.title ?? `Error ${page.status}`}</p>
+  <p class="text-lg text-muted-foreground mb-4">{subtitle}</p>
   <div>
     <Button
       variant="outline"

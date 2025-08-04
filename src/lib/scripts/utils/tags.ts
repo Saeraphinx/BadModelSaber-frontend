@@ -84,7 +84,7 @@ export function getTagData(tag: Tags, assetType: AssetFileFormat): { category: s
     case Tags.BadHitsound:
     case Tags.MenuClick:
       category = "Sound";
-      if (type !== `sounds`) disabled = true;
+      if (type !== `sound`) disabled = true;
       break;
 
     case Tags.FirstPerson:

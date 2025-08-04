@@ -8,10 +8,12 @@
 
   let {
     alert,
+    showRead = $bindable(false),
     class: className,
     ...restProps
   }: {
     alert: AlertPublicAPIv3;
+    showRead?: boolean;
   } & HTMLAttributes<HTMLDivElement> = $props();
 
   let isVisible = $state(true);
@@ -63,7 +65,10 @@
     {/if}
     {#if !alert.read}
     <Button variant="outline" onclick={() => {
-      isVisible = false
+      if (!showRead) {
+        isVisible = false;
+      }
+      markRead();
     }}>
       Mark as Read
     </Button>

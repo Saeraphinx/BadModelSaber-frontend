@@ -12,7 +12,7 @@ export type SponserUrl = {
 export type UserPublicAPIv3 = {
     id: string;
     username: string;
-    displayName: string | null;
+    displayName: string;
     bio: string | null;
     sponsorUrl: SponserUrl[] | null;
     avatarUrl: string;

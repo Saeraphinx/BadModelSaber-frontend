@@ -2,7 +2,7 @@ import { AssetFileFormat } from '$lib/scripts/api/DBTypes';
 import type { PageLoad } from './$types';
 
 export const load = (async (data) => {
-  let fileFormat = data.url.searchParams.get('fileFormat') || 'all';
+  let fileFormat = data.url.searchParams.get('type') || 'all';
   if ((Object.values(AssetFileFormat) as string[]).includes(fileFormat)) {
     fileFormat = fileFormat as AssetFileFormat;
   } else {

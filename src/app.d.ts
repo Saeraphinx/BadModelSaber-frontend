@@ -5,11 +5,15 @@ import 'unplugin-icons/types/svelte'
 
 declare global {
   namespace App {
-    // interface Error {}
+    interface Error {
+      title?: string;
+      subtitle?: string;
+      additionalInfo?: any;
+      redirectToHome?: boolean;
+    }
     // interface Locals {}
     interface PageData {
       user?: UserPublicAPI;
-      alerts: AlertPublicAPIv3[];
       requests: {
         incoming: AssetRequestPublicAPIv3[];
         outgoing: AssetRequestPublicAPIv3[];

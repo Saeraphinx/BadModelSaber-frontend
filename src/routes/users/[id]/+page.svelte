@@ -14,8 +14,8 @@
 </script>
 
 <div class="flex flex-col items-center mx-4">
-  <div class="flex flex-row gap-4 w-full">
-    <UserCard {user} class="min-w-92" />
+  <div class="flex flex-col md:flex-row gap-4 w-full">
+    <UserCard {user} class="md:min-w-92" />
     <div class="flex flex-col bg-accent p-4 rounded-lg w-full">
       <p class="text-base">{user.bio}</p>
       <!-- {#if user.sponsorUrl}
@@ -24,7 +24,7 @@
     </div>
   </div>
   <Separator class="my-4 w-full" />
-  <div class="mt-4">
+  <div class="mt-4 flex flex-row flex-wrap justify-evenly  gap-8">
     {#each assets as asset}
       <AssetCard {asset} size="large" approvalDialog={dialog} />
     {:else}

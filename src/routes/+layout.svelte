@@ -122,11 +122,61 @@
   }
   // #endregion KonamiListener
 
+  // #region Theme
+  onMount(() => {
+    theme = (localStorage.getItem("theme") as typeof theme) || "system";
+    handleThemeChange();
+  });
+
+  function handleThemeChange() {
+    if (theme === "system") {
+      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    } else {
+      if (theme === "dark") {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    }
+    localStorage.setItem("theme", theme);
+  }
+  // #endregion Theme
+
+  // #region Alerts
+  let allAlerts = $state<AlertPublicAPIv3[]>(data.alerts);
+  let unreadAlerts = $derived(allAlerts.filter(alert => !alert.read));
+  let isPendingAlerts = $derived(unreadAlerts.length > 0);
+  let openAlerts = $state(false);
+  let showRead = $state(false);
+  async function updateAlerts() {
+    const response = await fetchApiSafe<AlertPublicAPIv3[]>(`/alerts?read=${showRead}`, {
+      method: "GET",
+    }, data.fetch).then((res) => {
+      if (res.isError) {
+        toast.error("Failed to fetch read alerts.", {
+          description: res.message,
+        });
+        return [];
+      }
+      allAlerts = res.data;
+    }).catch((error) => {
+      toast.error("Failed to fetch read alerts.", {
+        description: error.message,
+      });
+      return [];
+    });
+  }
+  // #endregion Alerts
+  
   // #region Toasts
   // Alert count toast
   onMount(() => {
-    if (pendingAlerts) {
-      toast.info(`You have ${data.alerts.length} unread alert${data.alerts.length == 1 ? `` : `s`}.`, {
+    if (isPendingAlerts) {
+      toast.info(`You have ${allAlerts.length} unread alert${allAlerts.length == 1 ? `` : `s`}.`, {
         description: "",
         duration: 10000,
         closeButton: true,
@@ -159,54 +209,7 @@
     }
   });
   // #endregion Toasts
-
-  // #region Theme
-  onMount(() => {
-    theme = (localStorage.getItem("theme") as typeof theme) || "system";
-    handleThemeChange();
-  });
-
-  function handleThemeChange() {
-    if (theme === "system") {
-      if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-    } else {
-      if (theme === "dark") {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-    }
-    localStorage.setItem("theme", theme);
-  }
-  // #endregion Theme
-
-  // #region Alerts
-  let pendingAlerts = $derived(data.alerts.length > 0);
-  let openAlerts = $state(false);
-  let showRead = $state(false);
-  async function updateAlerts() {
-    const response = await fetchApiSafe<AlertPublicAPIv3[]>(`/alerts?read=${showRead}`, {
-      method: "GET",
-    }, data.fetch).then((res) => {
-      if (res.isError) {
-        toast.error("Failed to fetch read alerts.", {
-          description: res.message,
-        });
-        return [];
-      }
-      data.alerts = res.data;
-    }).catch((error) => {
-      toast.error("Failed to fetch read alerts.", {
-        description: error.message,
-      });
-      return [];
-    });
-  }
-  // #endregion Alerts
+  
   const links = [
     { href: "/", label: "Home" },
     { href: "/assets", label: "Assets" },
@@ -283,9 +286,9 @@
             <DropdownMenu.Item>
               <BellIcon />
               Alerts
-              {#if pendingAlerts}
+              {#if isPendingAlerts}
                 <Badge class="ml-1" variant="destructive">
-                  {data.alerts.length}
+                  {allAlerts.length}
                 </Badge>
               {/if}
             </DropdownMenu.Item>
@@ -346,7 +349,11 @@
       <Sheet.Title class="text-lg font-semibold">Alerts</Sheet.Title>
       <div class="flex flex-row justify-between items-center">
         <Sheet.Description class="text-sm text-gray-500">
-          You have {data.alerts.length} unread alert{data.alerts.length === 1 ? `` : `s`}.
+          {#if showRead}
+            You have {allAlerts.length} alert{unreadAlerts.length === 1 ? `` : `s`}.
+          {:else}
+            You have {unreadAlerts.length} unread alert{unreadAlerts.length === 1 ? `` : `s`}.
+          {/if}
         </Sheet.Description>
         <div class="flex items-center space-x-2">
           <Switch id="show-read" bind:checked={showRead} onCheckedChange={updateAlerts}/>
@@ -355,12 +362,22 @@
       </div>
     </Sheet.Header>
     <ScrollArea class="mx-4 min-h-0">
-      {#if data.alerts.length > 0}
-        {#each data.alerts as alert}
-          <Alert {alert} class="mb-2" />
-        {/each}
+      {#if showRead}
+        {#if allAlerts.length > 0}
+          {#each allAlerts as alert}
+            <Alert {alert} class="mb-2" />
+          {/each}
+        {:else}
+          <p class="text-gray-500">No alerts available.</p>
+        {/if}
       {:else}
-        <p class="text-gray-500">No alerts available.</p>
+        {#if unreadAlerts.length > 0}
+          {#each unreadAlerts as alert}
+            <Alert {alert} class="mb-2" />
+          {/each}
+        {:else}
+          <p class="text-gray-500">No unread alerts.</p>
+        {/if}
       {/if}
     </ScrollArea>
     <Sheet.Footer>

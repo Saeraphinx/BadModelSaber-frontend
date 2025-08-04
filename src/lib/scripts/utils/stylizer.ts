@@ -21,6 +21,12 @@ export function getAssetTypeString(type: AssetFileFormat): string {
   }
 }
 
+function toTitleCase(str: string): string {
+    return str.replace(/\w\S*/g, (txt) => {
+        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+    });
+}
+
 export function getAssetTypeData(format: AssetFileFormat): {
   formatString: string;
   typeString: string;
@@ -28,7 +34,7 @@ export function getAssetTypeData(format: AssetFileFormat): {
 } {
   let type = format.split('_')[0].replaceAll('-', ' ');
   let fileFormat = `.${format.split('_')[1].toLowerCase()}`;
-  let capitalType = type.charAt(0).toUpperCase() + type.slice(1);
+  let capitalType = toTitleCase(type);
 
   switch (format) {
     case AssetFileFormat.HSVConfig_JSON:

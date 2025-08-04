@@ -6,7 +6,7 @@
   import * as Carousel from "$shadcn/components/ui/carousel/index.js";
   import Separator from "$shadcn/components/ui/separator/separator.svelte";
   import { type CarouselAPI } from "$shadcn/components/ui/carousel/context.js";
-  import { BadgeAlert, Car, ChevronLeftIcon, ChevronRightIcon, CircleDot, CircleIcon, CloudDownloadIcon, DotIcon, DownloadIcon, Edit, MegaphoneIcon } from "@lucide/svelte";
+  import { BadgeAlert, Car, ChevronLeftIcon, ChevronRightIcon, CircleDot, CircleIcon, CloudDownloadIcon, DotIcon, DownloadIcon, Edit, HamburgerIcon, MegaphoneIcon, MenuIcon } from "@lucide/svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { page } from "$app/state";
   import Skeleton from "$shadcn/components/ui/skeleton/skeleton.svelte";
@@ -19,10 +19,10 @@
   import TagBadge from "$lib/components/assets/TagBadge.svelte";
   import Input from "$shadcn/components/ui/input/input.svelte";
   import Textarea from "$shadcn/components/ui/textarea/textarea.svelte";
+  import TagPicker from "$lib/components/forms/TagPicker.svelte";
 
   let { data } = $props();
-  const asset = data.pageData;
-  const typeData = getAssetTypeData(asset.type);
+  const typeData = $derived.by(() => getAssetTypeData(data.pageData.type));
 
   let mobileView = new MediaQuery("min-width: 700px");
   let iconApi = $state<CarouselAPI>();
@@ -30,7 +30,13 @@
   let authorApi = $state<CarouselAPI>();
   let dialog: ApprovalPopup;
 
-  //#region Editing
+  // #region Report
+  let allowedToReport = $derived.by(() => {
+    if (!data.user) return false;
+    if (data.user.id === data.pageData.uploader.id) return false; // Can't report your own asset
+    return true; // Allow reporting if the user is logged in and not the uploader
+  })
+  // #region Editing
   let allowedToEdit = $derived.by(() => {
     if (!data.user) return false;
     if (data.user.roles.includes(UserRole.Admin)) return true;
@@ -38,10 +44,11 @@
     if (data.pageData.uploader.id === data.user.id) return true;
     return false;
   });
-  let isEditing = $state<boolean>(true);
-  let editName = $state<string>(asset.name);
-  let editDescription = $state<string>(asset.description || "");
-  let editTags = $state<Tags[]>(asset.tags as Tags[] || []);
+  let isEditing = $state<boolean>(false);
+  let editName = $state<string>(data.pageData.name);
+  let editDescription = $state<string>(data.pageData.description || "");
+  let editTags = $state<Tags[]>(data.pageData.tags as Tags[] || []);
+  let openTagPicker = $state<boolean>(false);
   //#endregion
 
   // #region Loading
@@ -51,7 +58,7 @@
   let authorAssets = $state<AssetPublicAPIv3[]>([]);
 
   onMount(async () => {
-    if (asset.linkedIds.length > 0) {
+    if (data.pageData.linkedIds.length > 0) {
       fetchApiSafe<{ [key: string]: AssetPublicAPIv3 }>(`/multi/assets?id=${data.pageData.linkedIds.slice(0, 20).join("&id=")}`, {}, data.fetch).then((res) => {
         if (res.isError) {
           toast.error(`Failed to load related assets: ${res.message}`);
@@ -71,14 +78,14 @@
         isAuthorLoading = false;
         return;
       } else {
-        authorAssets = res.data?.assets.filter(i => i.id !== asset.id) || [];
+        authorAssets = res.data?.assets.filter(i => i.id !== data.pageData.id) || [];
         isAuthorLoading = false;
       }
     });
   });
   // #endregion
 </script>
-
+<!-- #region Datatable -->
 {#snippet dT_Regular(title = "Title", value = "", includeDiv = true)}
   {#if includeDiv}
     <div class="flex justify-between items-center">
@@ -106,12 +113,25 @@
         <span class="text-muted-foreground">Uploaded By</span>
         <a href="/users/{data.pageData.uploader.id}" class="font-medium text-primary hover:underline">{data.pageData.uploader.displayName}</a>
       </div>
-      <div class="flex justify-between items-start">
+      <div class="flex justify-between items-center">
         <span class="text-muted-foreground">Tags</span>
         <div class="flex flex-wrap gap-1 max-w-[200px] justify-end">
-          {#each data.pageData.tags as tag}
-            <TagBadge tag={tag as Tags} />
-          {/each}
+          {#if !isEditing}
+            {#each data.pageData.tags as tag}
+              <TagBadge tag={tag as Tags} />
+            {:else}
+              <span class="text-muted-foreground">No tags selected.</span>
+            {/each}
+          {:else}
+            {#each editTags as tag}
+              <TagBadge tag={tag as Tags} />
+            {/each}
+            <Badge variant="default" class="hover:bg-gray-600 cursor-pointer" onclick={() => {
+              openTagPicker = true;
+            }}>
+              <MenuIcon />
+            </Badge>
+          {/if}
         </div>
       </div>
       {@render dT_Regular(`Type`, typeData.combinedString)}
@@ -146,7 +166,9 @@
     </div>
   </div>
 {/snippet}
+<!-- #endregion -->
 
+<!-- #region Carousel -->
 {#snippet iconCarousel()}
   <Carousel.Root
     setApi={(api) => {
@@ -156,7 +178,9 @@
     <Carousel.Content>
       {#each data.pageData.icons as icon}
         <Carousel.Item>
-          <img src={`${getAssetThumbnailUrl(icon)}`} alt="ModelSaber Logo" class="w-full h-full rounded-2xl" />
+          <div class="overflow-hidden rounded-2xl">
+            <img src={`${getAssetThumbnailUrl(icon)}`} alt="ModelSaber Logo" class="w-full h-full rounded-2xl {data.pageData.tags.includes(Tags.NSFW) ? `not-hover:blur-xl transition-all duration-700` : ``}" />
+          </div>
         </Carousel.Item>
       {/each}
     </Carousel.Content>
@@ -206,6 +230,7 @@
     {/if}
   </div>
 {/snippet}
+<!-- #endregion -->
 
 {#snippet buttons()}
   {#if !isEditing}
@@ -217,10 +242,12 @@
       <CloudDownloadIcon />
       OneClick Install
     </Button>
-    <Button variant="destructive" href="/assets/{data.pageData.id}/report" disabled>
-      <MegaphoneIcon />
-      Report
-    </Button>
+    {#if allowedToReport}
+      <Button variant="destructive" href="/assets/{data.pageData.id}/report" disabled>
+        <MegaphoneIcon />
+        Report
+      </Button>
+    {/if}
     {#if data.user && data.user.roles.includes(UserRole.Moderator)}
       <Button
         variant="secondary"
@@ -239,9 +266,9 @@
         </Button>
         <Button variant="secondary" onclick={() => {
           isEditing = !isEditing;
-          editName = asset.name;
-          editDescription = asset.description || "";
-          editTags = asset.tags as Tags[] || [];
+          editName = data.pageData.name;
+          editDescription = data.pageData.description || "";
+          editTags = data.pageData.tags as Tags[] || [];
         }}>
           Discard Changes
         </Button>
@@ -315,3 +342,4 @@
 </div>
 
 <ApprovalPopup bind:this={dialog} />
+<TagPicker bind:open={openTagPicker} bind:selectedTags={editTags} type={data.pageData.type} />
