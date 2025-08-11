@@ -6,7 +6,7 @@
   import * as Carousel from "$shadcn/components/ui/carousel/index.js";
   import Separator from "$shadcn/components/ui/separator/separator.svelte";
   import { type CarouselAPI } from "$shadcn/components/ui/carousel/context.js";
-  import { BadgeAlert, Car, ChevronLeftIcon, ChevronRightIcon, CircleDot, CircleIcon, CloudDownloadIcon, DotIcon, DownloadIcon, Edit, HamburgerIcon, MegaphoneIcon, MenuIcon } from "@lucide/svelte";
+  import { BadgeAlert, Car, ChevronLeftIcon, ChevronRightIcon, CircleDot, CircleIcon, CloudDownloadIcon, DotIcon, DownloadIcon, Edit, HamburgerIcon, MegaphoneIcon, MenuIcon, PlusIcon } from "@lucide/svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { page } from "$app/state";
   import Skeleton from "$shadcn/components/ui/skeleton/skeleton.svelte";
@@ -49,6 +49,9 @@
   let editDescription = $state<string>(data.pageData.description || "");
   let editTags = $state<Tags[]>(data.pageData.tags as Tags[] || []);
   let openTagPicker = $state<boolean>(false);
+  let isPendingSave = $derived.by(() => {
+    return editName !== data.pageData.name || editDescription !== data.pageData.description || !editTags.every(tag => data.pageData.tags.includes(tag));
+  });
   //#endregion
 
   // #region Loading
@@ -192,7 +195,15 @@
 
 {#snippet assetCarousel(assets: AssetPublicAPIv3[], isLoading: boolean, apiType: `author` | `related`, title = "Related Assets", ifNoFound = "No related assets found.", guessNumber = 5)}
   <div class="w-full">
-    <span class="text-lg font-semibold">{title}</span>
+    <div class="flex justify-between items-center">
+      <span class="text-lg font-semibold">{title}</span>
+      {#if apiType === "related" && isEditing}
+        <Button>
+          <PlusIcon/>
+          Add Related Asset
+        </Button>
+      {/if}
+    </div>
     {#if assets.length === 0 && !isLoading}
       <span class="text-gray-500 dark:text-gray-400 w-full py-8 text-center">{ifNoFound}</span>
     {:else}
@@ -261,7 +272,7 @@
   {/if}
   {#if allowedToEdit}
     {#if isEditing}
-        <Button variant="default">
+        <Button variant="default" disabled={!isPendingSave}>
           Submit
         </Button>
         <Button variant="secondary" onclick={() => {
