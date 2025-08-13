@@ -50,12 +50,13 @@ export type AssetPublicAPIv2 = {
     name: string;
     author: string;
     thumbnail: string;
+    id: number
     hash: string;
     bsaber: string; // empty if not available
     status: string;
-    discordId: string; // "-1" if not available
+    discordid: string; // "-1" if not available
     discord: string; // username
-    variationId: string | null; // null if not a variation
+    variationid: number | null; // null if not a variation
     platform: `pc`,
     download: string; // download URL
     install_link: string; // install link URL - "modelsaber://${type}/${id}/${filename}.${fileFormat}"
@@ -69,7 +70,7 @@ export type AssetPublicAPIv1 = Pick<AssetPublicAPIv2, `tags` | `type` | `name` |
 
 export type AssetPublicAPIv3 = {
     id: number;
-    oldId: string | null;
+    oldId: number | null;
     linkedIds: LinkedAsset[]; // Array of linked asset IDs
     type: AssetFileFormat;
     uploader: UserPublicAPIv3;
@@ -164,6 +165,8 @@ export enum Tags {
 
     AudioLink = 'AudioLink', // sabers
     Reactive = 'Reactive', // sabers/platforms
+    Animations = 'Animations', // sabers/platforms
+    Sounds = 'Sounds', // sabers/platforms w/ audio
 
     FBT = 'FBT', // asset
     Cloth = 'Cloth',
@@ -171,7 +174,7 @@ export enum Tags {
     Shaders = 'Shader Replacement',
     NSFW = 'NSFW',
 
-    // types
+    // types/genres
     Meme = 'Meme',
     Thin = 'Thin', // sabers
     Large = 'Large', // sabers
@@ -180,10 +183,14 @@ export enum Tags {
     Sword = 'Sword', // sabers
     Simple = 'Simple', // sabers
     VideoGame = 'Video Game',
+    Anime = 'Anime',
     Pride = 'Pride',
-    Animated = 'Animated',
-    Pro = 'Pro', // avatars
-    Underswing = 'underswing', // hsv
+    Pro = 'Pro',
+    Halloween = 'Halloween',
+    Holiday = 'Holiday',
+    Christmas = 'Christmas',
+
+    Underswing = 'Underswing', // hsv
     TimeDependence = 'Time Dependence', // hsv
     Hitsound = 'Hitsound', // sounds
     BadHitsound = 'BadCut Hitsound', // sounds

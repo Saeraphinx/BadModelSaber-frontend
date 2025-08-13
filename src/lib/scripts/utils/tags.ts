@@ -27,6 +27,8 @@ export function getTagData(tag: Tags, assetType: AssetFileFormat): { category: s
     case Tags.FBT:
     case Tags.Cloth:
     case Tags.DynamicBones:
+    case Tags.Animations:
+    case Tags.Sounds:
     case Tags.AudioLink:
     case Tags.Reactive:
     case Tags.Particles:
@@ -46,7 +48,10 @@ export function getTagData(tag: Tags, assetType: AssetFileFormat): { category: s
     case Tags.Sword:
     case Tags.Simple:
     case Tags.VideoGame:
-    case Tags.Animated:
+    case Tags.Anime:
+    case Tags.Halloween:
+    case Tags.Holiday:
+    case Tags.Christmas:
     case Tags.Pro:
     case Tags.Underswing:
     case Tags.TimeDependence:
@@ -77,6 +82,8 @@ export function getTagData(tag: Tags, assetType: AssetFileFormat): { category: s
     case Tags.AudioLink:
     case Tags.Reactive:
     case Tags.Particles:
+    case Tags.Animations:
+    case Tags.Sounds:
     case Tags.Shaders:
       category = "Features";
       break;
@@ -104,7 +111,10 @@ export function getTagData(tag: Tags, assetType: AssetFileFormat): { category: s
     case Tags.Sword:
     case Tags.Simple:
     case Tags.VideoGame:
-    case Tags.Animated:
+    case Tags.Anime:
+    case Tags.Halloween:
+    case Tags.Holiday:
+    case Tags.Christmas:
     case Tags.Pro:
     case Tags.Underswing:
     case Tags.TimeDependence:

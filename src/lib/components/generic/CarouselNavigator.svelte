@@ -7,15 +7,23 @@
 
   let {
     api,
-    showOnlyOne = true
+    showOnlyOne = true,
+    numberOfDots,
   }: {
     api: CarouselAPI;
     showOnlyOne?: boolean;
+    numberOfDots?: number;
   } = $props();
 
   let currentIndexes: number[] = $state([0]);
-  let items = $derived.by(() => api?.slideNodes() || []);
-  console.log("CarouselNavigator items", items);
+  let itemsCount = $derived.by(() => {
+    if (numberOfDots) {
+      return numberOfDots;
+    } else {
+      return api?.slideNodes().length || 1;
+    }
+  });
+  //console.log("CarouselNavigator items", items);
   onMount(() => {
     if (api) {
       // Initialize currentIndexes based on the API state
@@ -38,8 +46,8 @@
   <Button variant="ghost" size="icon" onclick={() => api?.scrollPrev()}>
     <ChevronLeftIcon class="w-5 h-5" />
   </Button>
-  {#each items as idk, index}
-    <Button variant="ghost" size="icon" class={items.length > 5 ? `not-md:size-4 not-md:p-1` : ``} onclick={() => api?.scrollTo(index)}>
+  {#each {length: itemsCount} as idk, index}
+    <Button variant="ghost" size="icon" class={itemsCount > 5 ? `not-md:size-4 not-md:p-1` : ``} onclick={() => api?.scrollTo(index)}>
       {#key currentIndexes}
         <span class="h-2 w-2 rounded-4xl transition-all duration-300 {currentIndexes.includes(index) ? `bg-gray-400 dark:bg-gray-200` : `bg-gray-200 dark:bg-gray-500`}"></span>
       {/key}

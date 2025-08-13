@@ -20,11 +20,14 @@
   import Input from "$shadcn/components/ui/input/input.svelte";
   import Textarea from "$shadcn/components/ui/textarea/textarea.svelte";
   import TagPicker from "$lib/components/forms/TagPicker.svelte";
+  import { zAsset } from "$lib/scripts/api/validator.js";
+  import { fromZodError } from "zod-validation-error";
+  import { cn } from "$shadcn/utils";
 
   let { data } = $props();
   const typeData = $derived.by(() => getAssetTypeData(data.pageData.type));
 
-  let mobileView = new MediaQuery("min-width: 700px");
+  let mobileView = new MediaQuery("max-width: 767px"); // something something inclusivity
   let iconApi = $state<CarouselAPI>();
   let relatedApi = $state<CarouselAPI>();
   let authorApi = $state<CarouselAPI>();
@@ -35,7 +38,7 @@
     if (!data.user) return false;
     if (data.user.id === data.pageData.uploader.id) return false; // Can't report your own asset
     return true; // Allow reporting if the user is logged in and not the uploader
-  })
+  });
   // #region Editing
   let allowedToEdit = $derived.by(() => {
     if (!data.user) return false;
@@ -47,12 +50,57 @@
   let isEditing = $state<boolean>(false);
   let editName = $state<string>(data.pageData.name);
   let editDescription = $state<string>(data.pageData.description || "");
-  let editTags = $state<Tags[]>(data.pageData.tags as Tags[] || []);
+  let editTags = $state<Tags[]>((data.pageData.tags as Tags[]) || []);
   let openTagPicker = $state<boolean>(false);
   let isPendingSave = $derived.by(() => {
-    return editName !== data.pageData.name || editDescription !== data.pageData.description || !editTags.every(tag => data.pageData.tags.includes(tag));
+    return editName !== data.pageData.name || editDescription !== data.pageData.description || !editTags.every((tag) => data.pageData.tags.includes(tag));
   });
+  let zAssetName = $derived.by(() => zAsset.shape.name.safeParse(editName));
+  let zAssetDescription = $derived.by(() => zAsset.shape.description.safeParse(editDescription));
   //#endregion
+
+  // #region Edit Submissions
+  function saveChanges() {
+    if (!isPendingSave) {
+      toast.info("No changes to save.");
+      return;
+    }
+
+    if (!zAssetName.success && !zAssetDescription.success) {
+      toast.error("Invalid asset name or description.");
+      return;
+    }
+
+    fetchApiSafe(`/assets/${data.pageData.id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        name: editName,
+        description: editDescription,
+        tags: editTags,
+      }),
+    }, data.fetch).then((res) => {
+      if (res.isError) {
+        toast.error(`Failed to save changes: ${res.message}`);
+      } else {
+        toast.success("Changes saved successfully!", {
+          description: "Reload the page to see the changes.",
+          duration: 100 * 60 * 60 * 24, // 24 hours
+          dismissable: false,
+          action: {
+            label: "Reload",
+            onClick: () => {
+              window.location.reload();
+            },
+          }
+        });
+        isEditing = false;
+      }
+    }).catch((err) => {
+      console.error("Error saving changes:", err);
+      toast.error(`Error saving changes: ${err.message}`);
+    });
+  }
+  // #endregion
 
   // #region Loading
   let isRelatedLoading = $state<boolean>(true);
@@ -81,13 +129,14 @@
         isAuthorLoading = false;
         return;
       } else {
-        authorAssets = res.data?.assets.filter(i => i.id !== data.pageData.id) || [];
+        authorAssets = res.data?.assets.filter((i) => i.id !== data.pageData.id) || [];
         isAuthorLoading = false;
       }
     });
   });
   // #endregion
 </script>
+
 <!-- #region Datatable -->
 {#snippet dT_Regular(title = "Title", value = "", includeDiv = true)}
   {#if includeDiv}
@@ -129,9 +178,12 @@
             {#each editTags as tag}
               <TagBadge tag={tag as Tags} />
             {/each}
-            <Badge variant="default" class="hover:bg-gray-600 cursor-pointer" onclick={() => {
-              openTagPicker = true;
-            }}>
+            <Badge
+              variant="default"
+              class="hover:bg-gray-600 cursor-pointer"
+              onclick={() => {
+                openTagPicker = true;
+              }}>
               <MenuIcon />
             </Badge>
           {/if}
@@ -194,18 +246,20 @@
 {/snippet}
 
 {#snippet assetCarousel(assets: AssetPublicAPIv3[], isLoading: boolean, apiType: `author` | `related`, title = "Related Assets", ifNoFound = "No related assets found.", guessNumber = 5)}
-  <div class="w-full">
+  <div class="w-full px-2">
     <div class="flex justify-between items-center">
       <span class="text-lg font-semibold">{title}</span>
       {#if apiType === "related" && isEditing}
         <Button>
-          <PlusIcon/>
+          <PlusIcon />
           Add Related Asset
         </Button>
       {/if}
     </div>
     {#if assets.length === 0 && !isLoading}
-      <span class="text-gray-500 dark:text-gray-400 w-full py-8 text-center">{ifNoFound}</span>
+      <div class="flex w-full justify-center items-center">
+        <span class="text-gray-500 dark:text-gray-400 w-full py-8 text-center">{ifNoFound}</span>
+      </div>
     {:else}
       <Carousel.Root
         class="w-full"
@@ -243,113 +297,121 @@
 {/snippet}
 <!-- #endregion -->
 
-{#snippet buttons()}
-  {#if !isEditing}
-    <Button variant="default" href={getAssetUrl(`unknown`)} disabled>
-      <DownloadIcon />
-      Download
-    </Button>
-    <Button variant="outline" href="" disabled>
-      <CloudDownloadIcon />
-      OneClick Install
-    </Button>
-    {#if allowedToReport}
-      <Button variant="destructive" href="/assets/{data.pageData.id}/report" disabled>
-        <MegaphoneIcon />
-        Report
+{#snippet buttons(center = mobileView.current)}
+  <div class={cn("flex flex-row gap-2 flex-wrap", center ? "justify-center" : "justify-start")}>
+    {#if !isEditing}
+      <Button variant="default" href={getAssetUrl(`unknown`)} disabled>
+        <DownloadIcon />
+        Download
       </Button>
-    {/if}
-    {#if data.user && data.user.roles.includes(UserRole.Moderator)}
-      <Button
-        variant="secondary"
-        onclick={() => {
-          dialog?.showDialog(data.pageData.id, data.pageData.name);
-        }}>
-        <BadgeAlert />
-        Approval Dialog
+      <Button variant="outline" href="" disabled>
+        <CloudDownloadIcon />
+        OneClick Install
       </Button>
-    {/if}
-  {/if}
-  {#if allowedToEdit}
-    {#if isEditing}
-        <Button variant="default" disabled={!isPendingSave}>
-          Submit
+      {#if allowedToReport}
+        <Button variant="destructive" href="/assets/{data.pageData.id}/report" disabled>
+          <MegaphoneIcon />
+          Report
         </Button>
-        <Button variant="secondary" onclick={() => {
-          isEditing = !isEditing;
-          editName = data.pageData.name;
-          editDescription = data.pageData.description || "";
-          editTags = data.pageData.tags as Tags[] || [];
-        }}>
+      {/if}
+      {#if data.user && data.user.roles.includes(UserRole.Moderator)}
+        <Button
+          variant="secondary"
+          onclick={() => {
+            dialog?.showDialog(data.pageData.id, data.pageData.name);
+          }}>
+          <BadgeAlert />
+          Approval Dialog
+        </Button>
+      {/if}
+    {/if}
+    {#if allowedToEdit}
+      {#if isEditing}
+        <Button 
+          variant="default" 
+          disabled={!isPendingSave || !zAssetName.success || !zAssetDescription.success}
+          onclick={() => {
+            saveChanges();
+          }}>
+        Submit Changes</Button>
+        <Button
+          variant="secondary"
+          onclick={() => {
+            isEditing = !isEditing;
+            editName = data.pageData.name;
+            editDescription = data.pageData.description || "";
+            editTags = (data.pageData.tags as Tags[]) || [];
+          }}>
           Discard Changes
         </Button>
-    {:else}
-      <Button variant="secondary" onclick={() => {
-        isEditing = !isEditing;
-      }}>
-        <Edit />
-        Edit
-      </Button>
+      {:else}
+        <Button
+          variant="secondary"
+          onclick={() => {
+            isEditing = !isEditing;
+          }}>
+          <Edit />
+          Edit
+        </Button>
+      {/if}
     {/if}
-  {/if}
+  </div>
 {/snippet}
 
-<div class="flex flex-col items-center w-[90%] m-auto max-w-6xl p-4 bg-background rounded-2xl">
-  {#if !mobileView.current}
-    <!-- Mobile View -->
-    <div class="flex flex-col items-center w-full">
-      {#if isEditing}
-        <Input type="text" bind:value={editName} placeholder="Asset Name" class="w-full mb-2" />
-      {:else}
-        <span class="text-3xl font-bold my-2">{data.pageData.name}</span>
+<!-- #region Editable Fields -->
+{#snippet title(center = mobileView.current)}
+  <div class={cn("mb-2 w-full text-center", center ? "text-center" : "text-left")}>
+    {#if isEditing}
+      <div class="flex flex-col w-full">
+        <Input aria-invalid={!zAssetName.success} type="text" bind:value={editName} placeholder="Asset Name" class="w-full mb-2" />
+        {#if !zAssetName.success}
+          <span class="text-sm text-red-500 mt-1">{fromZodError(zAssetName.error)}</span>
+        {/if}
+      </div>
+    {:else}
+      <span class="text-3xl font-bold">{data.pageData.name}</span>
+    {/if}
+  </div>
+{/snippet}
+
+{#snippet description()}
+  {#if isEditing}
+    <Textarea bind:value={editDescription} placeholder="Asset Description" class="w-full mb-2 min-h-64" />
+  {:else}
+    <span class="text-lg text-gray-500 dark:text-gray-400 whitespace-pre-line text-wrap wrap-anywhere">{data.pageData.description || "No description available."}</span>
+  {/if}
+{/snippet}
+<!-- #endregion -->
+
+<div class="flex flex-col items-center m-auto max-w-6xl p-4 bg-background rounded-2xl">
+  <div class="flex flex-col md:flex-row w-full">
+    <div class="flex flex-col items-center w-auto min-w-[40%] md:max-w-[50%]">
+      {#if mobileView.current}
+        {@render title()}
       {/if}
       {@render iconCarousel()}
-      <div class="flex flex-row gap-2 mt-4 flex-wrap justify-center">
-        {@render buttons()}
-      </div>
-      <Separator class="my-2 w-full" />
-      <span class="text-lg text-gray-500 dark:text-gray-400">{data.pageData.description || "No description available."}</span>
-      <Separator class="my-2 w-full" />
-      {@render assetCarousel(relatedAssets, isRelatedLoading, `related`, "Related Assets:", "No related assets found.")}
-      <Separator class="my-4 w-full" />
-          {@render assetCarousel(authorAssets, isAuthorLoading, `author`, `Other assets by ${data.pageData.uploader.displayName}:`, "No other assets found.")}
-      <Separator class="my-4 w-full" />
-      {@render dataTable()}
-    </div>
-  {:else}
-    <!-- Desktop View -->
-    <div class="flex flex-row w-full">
-      <div class="flex flex-col items-center w-auto min-w-[40%] max-w-[50%]">
-        {@render iconCarousel()}
+      {#if !mobileView.current}
         {@render dataTable()}
-      </div>
-      <div class="flex flex-col ml-4 mt-2 max-w-[60%]">
-        <div class="flex flex-col">
-          <!-- Title & Action Buttons? -->
-          {#if isEditing}
-            <Input type="text" bind:value={editName} placeholder="Asset Name" class="w-full mb-2" />
-          {:else}
-            <span class="text-3xl font-bold">{data.pageData.name}</span>
-          {/if}
-          <div class="flex flex-row gap-2 mt-4 flex-wrap">
+      {/if}
+    </div>
+    <div class="flex flex-col mx-6 mt-2 md:max-w-[58%]">
+      <div class="flex flex-col">
+        {#if !mobileView.current}
+          {@render title()}
+        {/if}
         {@render buttons()}
-      </div>
-          <Separator class="my-4 w-full" />
-          <!-- Description -->
-          {#if isEditing}
-            <Textarea bind:value={editDescription} placeholder="Asset Description" class="w-full mb-2 min-h-64" />
-          {:else}
-            <span class="text-lg text-gray-500 dark:text-gray-400">{data.pageData.description || "No description available."}</span>
-          {/if}
-          <Separator class="my-4 w-full" />
-          <!-- Related Assets -->
-          {@render assetCarousel(relatedAssets, isRelatedLoading, `related`, "Related Assets:", "No related assets found.")}
-          <Separator class="my-4 w-full" />
-          {@render assetCarousel(authorAssets, isAuthorLoading, `author`, `Other assets by ${data.pageData.uploader.displayName}:`, "No other assets found.")}
-        </div>
+        <Separator class="my-4 w-full" />
+        {@render description()}
+        <Separator class="my-4 w-full" />
+        {@render assetCarousel(relatedAssets, isRelatedLoading, `related`, "Related Assets:", "No related assets found.")}
+        <Separator class="my-4 w-full" />
+        {@render assetCarousel(authorAssets, isAuthorLoading, `author`, `Other assets by ${data.pageData.uploader.displayName}:`, "No other assets found.")}
+        {#if mobileView.current}
+          {@render dataTable()}
+        {/if}
       </div>
     </div>
-  {/if}
+  </div>
 </div>
 
 <ApprovalPopup bind:this={dialog} />
