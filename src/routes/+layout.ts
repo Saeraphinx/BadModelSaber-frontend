@@ -28,6 +28,19 @@ export const load: LayoutLoad = async ({ fetch }) => {
     };
   });
 
+  if (userRes.isError) {
+    return {
+      fetch,
+      alerts: [],
+      requests: {
+        incoming: [],
+        outgoing: [],
+      },
+      user: undefined,
+      pendingToasts: pendingToasts,
+    }
+  }
+
   let alertRes = await fetchApiSafe<AlertPublicAPIv3[]>("/alerts", {
     method: "GET",
     credentials: "include",

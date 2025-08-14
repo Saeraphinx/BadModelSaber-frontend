@@ -152,7 +152,7 @@
   let isPendingAlerts = $derived(unreadAlerts.length > 0);
   let openAlerts = $state(false);
   let showRead = $state(false);
-  async function updateAlerts() {
+  async function updateAlerts() { // this is honestly a fucking mess but its what works for now
     const response = await fetchApiSafe<AlertPublicAPIv3[]>(`/alerts?read=${showRead}`, {
       method: "GET",
     }, data.fetch).then((res) => {

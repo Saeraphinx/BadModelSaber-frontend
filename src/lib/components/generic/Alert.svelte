@@ -44,6 +44,18 @@
       });
     });
   }
+
+  function deleteAlert() {
+    isVisible = false;
+    fetchApi(`/alerts/${alert.id}`, {
+      method: 'DELETE',
+    }).catch((error) => {
+      console.error('Failed to delete alert:', error);
+      toast.error('Failed to delete alert.', {
+        description: error.message,
+      });
+    });
+  }
 </script>
 
 <div class={cn(`${bgColor} ${isVisible ? `` : `hidden`} rounded-xl p-4`,className)} {...restProps}>
@@ -75,6 +87,7 @@
     {:else}
     <Button variant="destructive" onclick={() => {
       isVisible = false
+      deleteAlert();
     }}>
       Delete
     </Button>
