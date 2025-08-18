@@ -238,108 +238,109 @@
   <link rel="icon" href="/favicon.png" />
 </svelte:head>
 
-<div class="flex w-auto flex-row text-base justify-between">
-  <!-- Logo -->
-  <div class="flex items-center justify-center md:w-32 h-16 md:ml-16 ml-4 md:p-4">
-    <span class="text-xl font-bold">ModelSaber</span>
-  </div>
-  <!-- Navigation Bar -->
-  <div class="flex p-4 justify-center">
-    {#if showFullBar.current}
-      {@render navbar_main("horizontal")}
-    {/if}
-  </div>
-  <div class="flex items-center justify-end md:w-32 h-16 md:mr-16 mr-4 md:p-4 gap-0.5">
-    <!-- Hamburger menu for Small Screens -->
-    {#if !showFullBar.current}
-      <Popover.Root>
-        <Popover.Trigger>
-          {#snippet child()}
-            <Button variant="ghost" size="icon" class="text-base">
-              <Menu />
-            </Button>
-          {/snippet}
-        </Popover.Trigger>
-        <Popover.Content class="flex flex-col items-center justify-center w-auto">
-          {@render navbar_main("vertical")}
-          <Separator class="my-2 w-full" />
-        </Popover.Content>
-      </Popover.Root>
-    {/if}
-    <!-- User Avatar or Login Button -->
-    {#if data.user && data.user.id}
-      <DropdownMenu.Root>
-        <DropdownMenu.Trigger class="p-2 rounded-full hover:bg-accent transition-colors duration-300">
-          <Avatar.Root>
-            <Avatar.Image src={data.user.avatarUrl} alt={data.user.displayName} />
-            <Avatar.Fallback>{data.user.displayName}</Avatar.Fallback>
-          </Avatar.Root>
-        </DropdownMenu.Trigger>
-        <DropdownMenu.Content class="mr-10 flex flex-col">
-          <a href="/users/me">
-            <DropdownMenu.Item>
-              <UserIcon />
-              Profile
-            </DropdownMenu.Item>
-          </a>
-          <button onclick={() => (openAlerts = true)}>
-            <DropdownMenu.Item>
-              <BellIcon />
-              Alerts
-              {#if isPendingAlerts}
-                <Badge class="ml-1" variant="destructive">
-                  {allAlerts.length}
-                </Badge>
-              {/if}
-            </DropdownMenu.Item>
-          </button>
-          <a href="/requests">
-            <DropdownMenu.Item>
-              <MessageCircleQuestionIcon />
-              Requests
-            </DropdownMenu.Item>
-          </a>
-          {#if data.user.roles.includes(UserRole.Secret)}
-            <button onclick={removeSecret}>
+<div>
+  <div class="flex w-auto flex-row text-base justify-between">
+    <!-- Logo -->
+    <div class="flex items-center justify-center md:w-32 h-16 md:ml-16 ml-4 md:p-4">
+      <span class="text-xl font-bold">ModelSaber</span>
+    </div>
+    <!-- Navigation Bar -->
+    <div class="flex p-4 justify-center">
+      {#if showFullBar.current}
+        {@render navbar_main("horizontal")}
+      {/if}
+    </div>
+    <div class="flex items-center justify-end md:w-32 h-16 md:mr-16 mr-4 md:p-4 gap-0.5">
+      <!-- Hamburger menu for Small Screens -->
+      {#if !showFullBar.current}
+        <Popover.Root>
+          <Popover.Trigger>
+            {#snippet child()}
+              <Button variant="ghost" size="icon" class="text-base">
+                <Menu />
+              </Button>
+            {/snippet}
+          </Popover.Trigger>
+          <Popover.Content class="flex flex-col items-center justify-center w-auto">
+            {@render navbar_main("vertical")}
+            <Separator class="my-2 w-full" />
+          </Popover.Content>
+        </Popover.Root>
+      {/if}
+      <!-- User Avatar or Login Button -->
+      {#if data.user && data.user.id}
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger class="p-2 rounded-full hover:bg-accent transition-colors duration-300">
+            <Avatar.Root>
+              <Avatar.Image src={data.user.avatarUrl} alt={data.user.displayName} />
+              <Avatar.Fallback>{data.user.displayName}</Avatar.Fallback>
+            </Avatar.Root>
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content class="mr-10 flex flex-col">
+            <a href="/users/me">
               <DropdownMenu.Item>
-                <TrafficConeIcon class="text-orange-500" />
-                Disable Secret Features
+                <UserIcon />
+                Profile
+              </DropdownMenu.Item>
+            </a>
+            <button onclick={() => (openAlerts = true)}>
+              <DropdownMenu.Item>
+                <BellIcon />
+                Alerts
+                {#if isPendingAlerts}
+                  <Badge class="ml-1" variant="destructive">
+                    {allAlerts.length}
+                  </Badge>
+                {/if}
               </DropdownMenu.Item>
             </button>
-          {/if}
-          <a href="/create">
-            <DropdownMenu.Item>
-              <PlusIcon />
-              Create Asset
-            </DropdownMenu.Item>
-          </a>
-          <DropdownMenu.Separator />
-          <DropdownMenu.RadioGroup bind:value={theme} onValueChange={handleThemeChange}>
-            <DropdownMenu.Label>Theme</DropdownMenu.Label>
-            <DropdownMenu.RadioItem closeOnSelect={false} value="system">System</DropdownMenu.RadioItem>
-            <DropdownMenu.RadioItem closeOnSelect={false} value="dark">Dark</DropdownMenu.RadioItem>
-            <DropdownMenu.RadioItem closeOnSelect={false} value="light">Light</DropdownMenu.RadioItem>
-          </DropdownMenu.RadioGroup>
-          <DropdownMenu.Separator />
-          <a href={getApiUrl(`/auth/logout?redirect=${encodeURIComponent(page.url.href)}`)}>
-            <DropdownMenu.Item>
-              <LogOutIcon class="text-red-400" />
-              Logout
-            </DropdownMenu.Item>
-          </a>
-        </DropdownMenu.Content>
-      </DropdownMenu.Root>
-    {:else}
-      <Button variant="outline" class="text-base" href={getApiUrl(`/auth/discord?redirect=${encodeURIComponent(page.url.href)}`)}>
-        <LogIn />
-        Login
-      </Button>
-    {/if}
+            <a href="/requests">
+              <DropdownMenu.Item>
+                <MessageCircleQuestionIcon />
+                Requests
+              </DropdownMenu.Item>
+            </a>
+            {#if data.user.roles.includes(UserRole.Secret)}
+              <button onclick={removeSecret}>
+                <DropdownMenu.Item>
+                  <TrafficConeIcon class="text-orange-500" />
+                  Disable Secret Features
+                </DropdownMenu.Item>
+              </button>
+            {/if}
+            <a href="/create">
+              <DropdownMenu.Item>
+                <PlusIcon />
+                Create Asset
+              </DropdownMenu.Item>
+            </a>
+            <DropdownMenu.Separator />
+            <DropdownMenu.RadioGroup bind:value={theme} onValueChange={handleThemeChange}>
+              <DropdownMenu.Label>Theme</DropdownMenu.Label>
+              <DropdownMenu.RadioItem closeOnSelect={false} value="system">System</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem closeOnSelect={false} value="dark">Dark</DropdownMenu.RadioItem>
+              <DropdownMenu.RadioItem closeOnSelect={false} value="light">Light</DropdownMenu.RadioItem>
+            </DropdownMenu.RadioGroup>
+            <DropdownMenu.Separator />
+            <a href={getApiUrl(`/auth/logout?redirect=${encodeURIComponent(page.url.href)}`)}>
+              <DropdownMenu.Item>
+                <LogOutIcon class="text-red-400" />
+                Logout
+              </DropdownMenu.Item>
+            </a>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
+      {:else}
+        <Button variant="outline" class="text-base" href={getApiUrl(`/auth/discord?redirect=${encodeURIComponent(page.url.href)}`)}>
+          <LogIn />
+          Login
+        </Button>
+      {/if}
+    </div>
   </div>
-</div>
-
-<div class="px-4 text-base text-foreground">
-  {@render children()}
+  <div class="px-4 text-base text-foreground">
+    {@render children()}
+  </div>
 </div>
 
 <!-- #region Alert Sidebar -->

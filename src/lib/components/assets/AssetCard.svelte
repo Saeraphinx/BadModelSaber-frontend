@@ -10,11 +10,13 @@
   import { generateOneClickUrl } from "$lib/scripts/utils/oneclick";
   import { invalidate } from "$app/navigation";
   import { page } from "$app/state";
+  import { cn } from "$shadcn/utils";
 
   let props: {
     asset: AssetPublicAPIv3;
     size?: "linked" | "normal" | "large";
     approvalDialog?: ApprovalDialog;
+    alwaysShowHover?: boolean;
   } = $props();
 
   let sizeClasses: {
@@ -53,7 +55,7 @@
   <!-- Card Overlay -->
 
   <div
-    class="absolute top-0 left-0 w-full h-full opacity-0 focus:opacity-100 hover:opacity-100 transition-opacity duration-300">
+    class={cn("absolute top-0 left-0 w-full h-full focus:opacity-100 hover:opacity-100 transition-opacity duration-300", props.alwaysShowHover ? `opacity-100` : `opacity-0`)}>
     <!-- Title Banner -->
     <div class="absolute top-0 left-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-xs w-full rounded-t-2xl">
       <div class="p-2 pl-4 flex flex-col">

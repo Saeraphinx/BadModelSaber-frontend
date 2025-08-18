@@ -2,16 +2,18 @@
   import AssetCard from '$lib/components/assets/AssetCard.svelte';
   import RequestCard from '$lib/components/requests/RequestCard.svelte';
   import RequestMessage from '$lib/components/requests/RequestMessage.svelte';
-  import type { UserPublicAPIv3 } from '$lib/scripts/api/DBTypes.js';
+  import { UserRole, type UserPublicAPIv3 } from '$lib/scripts/api/DBTypes.js';
   import { fetchApi } from '$lib/scripts/utils/api.js';
   import type { RequestMessage as ReqMessagge }  from '$lib/scripts/api/DBTypes.js';
+  import Textarea from '$shadcn/components/ui/textarea/textarea.svelte';
+  import Button from '$shadcn/components/ui/button/button.svelte';
 
   let { data } = $props();
 
   let users = $state<Map<string, {id: string, displayName:string, avatarUrl:string}>>(new Map());
   let messages: ReqMessagge[] = $state([{
     userId: `5`,
-    message: `Beginning Message`,
+    message: `Report created by ${data.user?.displayName || 'Unknown User'}`,
     timestamp: new Date(data.pageData.createdAt)
   },
     ...data.pageData.messages
@@ -44,19 +46,31 @@
       }
     }
   }
+
+  // Message boxes
+  let messageBox = $state<string>('');
+  let isAllowedToSend = $derived.by(() => {
+    if (data.user) {
+      if (data.user.roles.includes(UserRole.Admin) || data.user.roles.includes(UserRole.Moderator)) {
+        return true;
+      }
+      return data.pageData.accepted === null;
+    }
+  });
 </script>
 
 <div class="flex flex-row items-start justify-center gap-4" data-sveltekit-preload-code="false">
   <div class="flex flex-col gap-2">
     {#if data.pageData.refrencedAsset}
-      <AssetCard asset={data.pageData.refrencedAsset} size="large" />
+      <AssetCard asset={data.pageData.refrencedAsset} size="large" alwaysShowHover/>
     {/if}
     <div class="flex flex-col items-start gap-2 bg-card p-4 rounded-lg shadow-md w-full max-w-2xl">
       <h1 class="text-2xl font-bold">{data.pageData.requestType} Request</h1>
       <p class="text-gray-500">Request ID: {data.pageData.id}</p>
-      <p class="text-gray-500">Status: {data.pageData.accepted}</p>
+      <p class="text-gray-500">Status: {data.pageData.accepted ?? `Pending`}</p>
+      <p class="text-gray-500">Resolved by: {data.pageData.resolvedBy ?? `Not Resolved`}</p>
       <p class="text-gray-500">Created by: {users.get(data.pageData.requesterId)?.displayName || 'Unknown User'}</p>
-      <p class="text-gray-500">Created at: {new Date(data.pageData.createdAt).toLocaleDateString()}</p>
+      <p class="text-gray-500">Created at {new Date(data.pageData.createdAt).toLocaleDateString()}</p>
     </div>
   </div>
   <div class="flex flex-col w-full max-w-2xl">
@@ -72,6 +86,10 @@
       {:else}
         <p class="text-muted-foreground">No messages found for this request.</p>
       {/each}
+      {#if isAllowedToSend}
+        <Textarea bind:value={messageBox} placeholder="Type your message here..." class="w-full mt-4" rows={5} />
+        <Button variant="default" class="mt-2">Submit Message</Button>
+      {/if}
     {:catch error}
       <p class="text-red-500">Error loading messages: {error.message}</p>
     {/await}

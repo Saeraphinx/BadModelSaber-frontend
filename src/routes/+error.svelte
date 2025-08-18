@@ -20,10 +20,10 @@
           displayName: page.data.user?.displayName,
           roles: page.data.user?.roles,
         },
-        alerts: page.data.alerts?.map(alert => alert.id) || [],
+        alerts: page.data.alerts?.map((alert: any) => alert.id) || [],
         requests: {
-          incoming: page.data.requestCounts?.incoming.map(req => req.id) || [],
-          outgoing: page.data.requestCounts?.outgoing.map(req => req.id) || [],
+          incoming: page.data.requestCounts?.incoming || null,
+          outgoing: page.data.requestCounts?.outgoing || null,
         }
       },
     };
@@ -32,12 +32,19 @@
   let subtitle = $derived.by(() => {
     if (page.error?.subtitle) {
       return page.error.subtitle;
-    } else if (page.status === 404) {
-      return "We couldn't find this page :(";
-    } else if (page.status === 403) {
-      return "You do not have permission to view this page.";
     } else {
-      return "An unexpected error occurred :(";
+      switch (page.status) {
+        case 401:
+          return `You need to be logged in to view this page.`;
+        case 403:
+          return `You do not have permission to view this page.`;
+        case 404:
+          return `We couldn't find this page :/`;
+        case 500:
+          return `Something went wrong on our end.`;
+        default:
+          return `An unexpected error occurred. Please try again later.`;
+      }
     }
   });
 
