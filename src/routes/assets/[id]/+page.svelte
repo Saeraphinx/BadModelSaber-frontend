@@ -6,9 +6,9 @@
   import * as Carousel from "$shadcn/components/ui/carousel/index.js";
   import Separator from "$shadcn/components/ui/separator/separator.svelte";
   import { type CarouselAPI } from "$shadcn/components/ui/carousel/context.js";
-  import { BadgeAlert, Car, ChevronLeftIcon, ChevronRightIcon, CircleDot, CircleIcon, CloudDownloadIcon, DotIcon, DownloadIcon, Edit, HamburgerIcon, MegaphoneIcon, MenuIcon, PlusIcon } from "@lucide/svelte";
+  import { BadgeAlert, Car, ChevronLeftIcon, ChevronRightIcon, CircleDot, CircleIcon, ClipboardCopyIcon, CloudDownloadIcon, DotIcon, DownloadIcon, Edit, HamburgerIcon, MegaphoneIcon, MenuIcon, PlusIcon } from "@lucide/svelte";
   import { MediaQuery } from "svelte/reactivity";
-  import { page } from "$app/state";
+  import { navigating, page } from "$app/state";
   import Skeleton from "$shadcn/components/ui/skeleton/skeleton.svelte";
   import CarouselNavigator from "$lib/components/generic/CarouselNavigator.svelte";
   import { fetchApiSafe, getAssetThumbnailUrl, getAssetUrl } from "$lib/scripts/utils/api.js";
@@ -36,7 +36,7 @@
   // #region Report
   let allowedToReport = $derived.by(() => {
     if (!data.user) return false;
-    if (data.user.id === data.pageData.uploader.id) return false; // Can't report your own asset
+    if (data.user.id === data.pageData.uploaderId) return false; // Can't report your own asset
     return true; // Allow reporting if the user is logged in and not the uploader
   });
   // #region Editing
@@ -44,7 +44,7 @@
     if (!data.user) return false;
     if (data.user.roles.includes(UserRole.Admin)) return true;
     if (data.user.roles.includes(UserRole.Moderator)) return true;
-    if (data.pageData.uploader.id === data.user.id) return true;
+    if (data.pageData.uploaderId === data.user.id) return true;
     return false;
   });
   let isEditing = $state<boolean>(false);
@@ -123,7 +123,7 @@
     } else {
       isRelatedLoading = false;
     }
-    fetchApiSafe<{ assets: AssetPublicAPIv3[] }>(`/users/${data.pageData.uploader.id}/assets?limit=10`, {}, data.fetch).then((res) => {
+    fetchApiSafe<{ assets: AssetPublicAPIv3[] }>(`/users/${data.pageData.uploaderId}/assets?limit=10`, {}, data.fetch).then((res) => {
       if (res.isError) {
         toast.error(`Failed to load author's assets: ${res.message}`);
         isAuthorLoading = false;
@@ -133,6 +133,15 @@
         isAuthorLoading = false;
       }
     });
+  });
+
+  $effect(() => {
+    if (!navigating) return;
+    isEditing = false;
+    editName = data.pageData.name;
+    editDescription = data.pageData.description || "";
+    editTags = (data.pageData.tags as Tags[]) || [];
+    openTagPicker = false;
   });
   // #endregion
 </script>
@@ -160,14 +169,14 @@
 {#snippet dataTable()}
   <!-- Shows upload date, license, etc in a table format -->
   <div class="mt-4 w-full bg-card rounded-lg border border-border p-4">
-    <div class="flex flex-col gap-3">
+    <div class="flex flex-col gap-3 overflow-hidden">
       <div class="flex justify-between items-center">
         <span class="text-muted-foreground">Uploaded By</span>
-        <a href="/users/{data.pageData.uploader.id}" class="font-medium text-primary hover:underline">{data.pageData.uploader.displayName}</a>
+        <a href="/users/{data.pageData.uploaderId}" class="font-medium text-primary hover:underline">{data.pageData.uploader?.displayName}</a>
       </div>
       <div class="flex justify-between items-center">
         <span class="text-muted-foreground">Tags</span>
-        <div class="flex flex-wrap gap-1 max-w-[200px] justify-end">
+        <div class="flex flex-wrap gap-1 max-w-[70%] justify-end">
           {#if !isEditing}
             {#each data.pageData.tags as tag}
               <TagBadge tag={tag as Tags} />
@@ -217,7 +226,24 @@
       {/if}
       {@render dT_Regular("Uploaded", new Date(data.pageData.createdAt).toLocaleString())}
       {@render dT_Regular("Last Updated", new Date(data.pageData.updatedAt).toLocaleString())}
-      {@render dT_Regular("File Hash", data.pageData.fileHash || "N/A")}
+      <div class="flex justify-between items-center overflow-ellipsis">
+          <span class="text-muted-foreground">File Hash</span>
+          <div class="flex flex-row items-center gap-2 justify-end max-w-[70%]">
+            <div class="block overflow-ellipsis overflow-hidden whitespace-nowrap max-w-[100%]">
+              <span class="font-mono w-full" title={data.pageData.fileHash}>{data.pageData.fileHash}</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Copy File Hash"
+              onclick={() => {
+                navigator.clipboard.writeText(data.pageData.fileHash);
+                toast.success("File hash copied to clipboard!");
+              }}>
+              <ClipboardCopyIcon />
+            </Button>
+          </div>
+        </div>
     </div>
   </div>
 {/snippet}
@@ -405,7 +431,7 @@
         <Separator class="my-4 w-full" />
         {@render assetCarousel(relatedAssets, isRelatedLoading, `related`, "Related Assets:", "No related assets found.")}
         <Separator class="my-4 w-full" />
-        {@render assetCarousel(authorAssets, isAuthorLoading, `author`, `Other assets by ${data.pageData.uploader.displayName}:`, "No other assets found.")}
+        {@render assetCarousel(authorAssets, isAuthorLoading, `author`, `Other assets by ${data.pageData.uploader?.displayName}:`, "No other assets found.")}
         {#if mobileView.current}
           {@render dataTable()}
         {/if}

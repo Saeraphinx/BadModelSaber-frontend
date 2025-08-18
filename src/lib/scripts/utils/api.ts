@@ -18,28 +18,23 @@ type SuccessResponse<T> = {
   status: number;
   isError: false;
 }
-type CustomFetchResponse<T> = Promise<SuccessResponse<T> | {
+type CustomFetchResponse<T> = SuccessResponse<T> | {
   response: null;
   message: string;
-  data: null;
+  data: T | null;
   status: number;
   isError: true;
-}>
-
-export async function fetchApiSafe<T>(path: string, options?: RequestInit, customFetch = globalThis.fetch): CustomFetchResponse<T> {
-  return fetchApi<T>(path, options, customFetch).catch((error) => {
-    console.error(`Error fetching ${path}:`, error);
-    return {
-      response: null,
-      message: error.message || "Unknown error",
-      data: null,
-      status: 500,
-      isError: true as true,
-    };
-  });
 }
 
-export async function fetchApi<T>(path: string, options?: RequestInit, customFetch = globalThis.fetch): Promise<SuccessResponse<T>> {
+export function fetchApiSafe<T>(path: string, options?: RequestInit, customFetch = globalThis.fetch): Promise<CustomFetchResponse<T>> {
+  return _fetchApi<T>(path, options, customFetch, false);
+}
+
+export function fetchApi<T>(path: string, options?: RequestInit, customFetch = globalThis.fetch): Promise<SuccessResponse<T>> {
+  return _fetchApi<T>(path, options, customFetch, true) as unknown as Promise<SuccessResponse<T>>;
+}
+
+async function _fetchApi<T>(path: string, options?: RequestInit, customFetch = globalThis.fetch, errorOnNonOK = true): Promise<CustomFetchResponse<T>> {
   if (!env.PUBLIC_API_URL) {
     throw new Error("PUBLIC_API_URL is not defined in environment variables.");
   }
@@ -47,7 +42,7 @@ export async function fetchApi<T>(path: string, options?: RequestInit, customFet
   return customFetch(url, {
     ...options,
     method: options?.method || "GET",
-    credentials: "same-origin",
+    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       "User-Agent": `BadModelSaber-frontend/${env.PUBLIC_VERSION}`,
@@ -56,16 +51,27 @@ export async function fetchApi<T>(path: string, options?: RequestInit, customFet
   }).then(async (response) => {
     if (!response.ok) {
       return response.json().then((error: {message: string}) => {
-        throw new Error(`Error fetching ${path}: ${error.message}`);
+        console.error(response);
+        if (errorOnNonOK) {
+          throw new Error(`Server Error: ${error.message}`);
+        } else {
+          return {
+            response: null,
+            message: error.message || response.statusText || "Error",
+            data: null,
+            status: response.status,
+            isError: true as true,
+          }
+        }
       }).catch((error) => {
-        throw new Error(`Error parsing JSON from ${url}: ${error.message}`);
+        throw new Error(`Parsing JSON Error: ${error.message}`);
       });
     }
     let message = response.statusText || "Success";
     let data = null;
     if (response.status !== 204) {
       data = await response.json().catch((error) => {
-        throw new Error(`Error parsing JSON from ${url}: ${error.message}`);
+        throw new Error(`JSON Parsing error: ${error.message}`);
       });
       if (data && typeof data === 'object' && `message` in data) {
         message = data.message || message;
@@ -79,7 +85,7 @@ export async function fetchApi<T>(path: string, options?: RequestInit, customFet
       isError: false as false,
     }
   }).catch((error) => {
-    console.error(`Error fetching ${url}:`, error)
+    //console.error(`Error fetching ${url}:`, error)
     throw error
   });
 }

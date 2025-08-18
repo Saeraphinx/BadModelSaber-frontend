@@ -38,6 +38,8 @@ export function getTagData(tag: Tags, assetType: AssetFileFormat): { category: s
     case Tags.Hitsound:
     case Tags.BadHitsound:
     case Tags.MenuClick:
+    case Tags.FirstPerson:
+    case Tags.ThirdPerson:
       intClass = `bg-[#FF33AA]`;
       break;
 
@@ -55,8 +57,6 @@ export function getTagData(tag: Tags, assetType: AssetFileFormat): { category: s
     case Tags.Pro:
     case Tags.Underswing:
     case Tags.TimeDependence:
-    case Tags.FirstPerson:
-    case Tags.ThirdPerson:
       intClass = `bg-[#33FFAA]`;
       break;
 
@@ -75,7 +75,6 @@ export function getTagData(tag: Tags, assetType: AssetFileFormat): { category: s
     case Tags.CustomTrails:
     case Tags.CustomBombs:
     case Tags.CustomArrows:
-    case Tags.NSFW:
     case Tags.FBT:
     case Tags.Cloth:
     case Tags.DynamicBones:
@@ -85,19 +84,24 @@ export function getTagData(tag: Tags, assetType: AssetFileFormat): { category: s
     case Tags.Animations:
     case Tags.Sounds:
     case Tags.Shaders:
+      if (type === `hitscorevisualizer-config` || type === `counters-plus-config` || type === `camera2-config` || type === `sound` || type === `banner` || type === `chroma-environment`) {
+        disabled = true;
+      }
+    case Tags.NSFW:
       category = "Features";
       break;
+
     case Tags.Hitsound:
     case Tags.BadHitsound:
     case Tags.MenuClick:
-      category = "Sound";
+      category = "Type-Specific";
       if (type !== `sound`) disabled = true;
       break;
 
     case Tags.FirstPerson:
     case Tags.ThirdPerson:
       if (type !== `camera2`) disabled = true;
-      category = "General";
+      category = "Type-Specific";
       break;
 
     case Tags.Contest:

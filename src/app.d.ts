@@ -14,9 +14,10 @@ declare global {
     // interface Locals {}
     interface PageData {
       user?: UserPublicAPI;
-      requests: {
-        incoming: AssetRequestPublicAPIv3[];
-        outgoing: AssetRequestPublicAPIv3[];
+      requestCounts: {
+        incoming: number;
+        outgoing: number;
+        reports: number | null; // Optional, can be null if not available
       };
       fetch : typeof fetch; // Optional fetch override for server-side requests & to make sveltekit happy
       pendingToasts?: {

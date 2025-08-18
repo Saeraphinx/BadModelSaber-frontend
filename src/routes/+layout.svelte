@@ -22,12 +22,12 @@
   import { Switch } from "$shadcn/components/ui/switch";
   import { Label } from "$shadcn/components/ui/label";
   import ScrollArea from "$shadcn/components/ui/scroll-area/scroll-area.svelte";
-  import { fetchApiSafe } from "$lib/scripts/utils/api";
+  import { fetchApiSafe, getApiUrl } from "$lib/scripts/utils/api";
   import { invalidate, invalidateAll } from "$app/navigation";
 
   let { data, children } = $props();
   let theme: `system` | `light` | `dark` = $state("system");
-  let showFullBar = new MediaQuery("min-width: 750px");
+  let showFullBar = new MediaQuery("min-width: 769px");
   // #region KonamiListener
   onMount(() => {
     if (data.user && data.user.id && data.user.roles.includes(UserRole.Banned)) return;
@@ -238,18 +238,18 @@
   <link rel="icon" href="/favicon.png" />
 </svelte:head>
 
-<div class="flex w-auto flex-row text-base">
+<div class="flex w-auto flex-row text-base justify-between">
   <!-- Logo -->
-  <div class="flex items-center justify-center h-16 {showFullBar.current ? `w-[18em] px-8` : `px-8`}">
+  <div class="flex items-center justify-center md:w-32 h-16 md:ml-16 ml-4 md:p-4">
     <span class="text-xl font-bold">ModelSaber</span>
   </div>
   <!-- Navigation Bar -->
-  <div class="flex p-4 w-full justify-center">
+  <div class="flex p-4 justify-center">
     {#if showFullBar.current}
       {@render navbar_main("horizontal")}
     {/if}
   </div>
-  <div class="flex items-center justify-end h-16 gap-4 {showFullBar.current ? `w-[18em] px-8` : `px-8`}">
+  <div class="flex items-center justify-end md:w-32 h-16 md:mr-16 mr-4 md:p-4 gap-0.5">
     <!-- Hamburger menu for Small Screens -->
     {#if !showFullBar.current}
       <Popover.Root>
@@ -321,7 +321,7 @@
             <DropdownMenu.RadioItem closeOnSelect={false} value="light">Light</DropdownMenu.RadioItem>
           </DropdownMenu.RadioGroup>
           <DropdownMenu.Separator />
-          <a href="/logout">
+          <a href={getApiUrl(`/auth/logout?redirect=${encodeURIComponent(page.url.href)}`)}>
             <DropdownMenu.Item>
               <LogOutIcon class="text-red-400" />
               Logout
@@ -330,7 +330,7 @@
         </DropdownMenu.Content>
       </DropdownMenu.Root>
     {:else}
-      <Button variant="outline" class="text-base" href="/login">
+      <Button variant="outline" class="text-base" href={getApiUrl(`/auth/discord?redirect=${encodeURIComponent(page.url.href)}`)}>
         <LogIn />
         Login
       </Button>

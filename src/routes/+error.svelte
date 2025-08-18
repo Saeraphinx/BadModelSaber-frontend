@@ -22,8 +22,8 @@
         },
         alerts: page.data.alerts?.map(alert => alert.id) || [],
         requests: {
-          incoming: page.data.requests?.incoming.map(req => req.id) || [],
-          outgoing: page.data.requests?.outgoing.map(req => req.id) || [],
+          incoming: page.data.requestCounts?.incoming.map(req => req.id) || [],
+          outgoing: page.data.requestCounts?.outgoing.map(req => req.id) || [],
         }
       },
     };

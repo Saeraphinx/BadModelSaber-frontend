@@ -15,7 +15,7 @@
   import { Skeleton } from "$shadcn/components/ui/skeleton";
   import { MediaQuery } from "svelte/reactivity";
   import * as Collapsible from "$shadcn/components/ui/collapsible";
-  import { generateAssetSearchEngine } from "$lib/scripts/utils/serach";
+  import { generateAssetSearchEngine } from "$lib/scripts/utils/search.js";
   import { getContext, onMount } from "svelte";
   import ApprovalPopup from "$lib/components/assets/ApprovalDialog.svelte";
   import { fetchApiSafe } from "$lib/scripts/utils/api.js";
@@ -43,6 +43,7 @@
   let filterStatusVisible = $state<boolean>(true);
   let selectedFileFormats = $state<AssetFileFormat[]>([]);
   let selectedStatuses = $state<Status[]>([Status.Approved]);
+  let searchQuery = $state<string>("");
   let assetFileFormats = $derived.by(() => {
     return Object.values(AssetFileFormat).map((format) => {
       let type = format.split("_")[0];
@@ -64,7 +65,9 @@
   let filteredAssets = $derived.by(() => { // Filter Only
     if (!assetArray || assetArray.length === 0) return [];
 
-    return assetArray.filter((asset) => {
+    let searchOut = searchQuery.length >= 1 ? searchEngine?.search(searchQuery) || assetArray : assetArray;
+
+    return searchOut.filter((asset) => {
       let matchesFormat = selectedFileFormats.length === 0 || selectedFileFormats.includes(asset.type);
       let matchesStatus = selectedStatuses.length === 0 || selectedStatuses.includes(asset.status);
       return matchesFormat && matchesStatus;
@@ -155,7 +158,7 @@
 {#snippet filters()}
   <!-- File Type Filter -->
   <Collapsible.Root bind:open={filterFileFormatVisible}>
-    <div class="flex flex-col bg-accent rounded-2xl min-w-56 w-full py-2 px-4">
+    <div class="flex flex-col bg-card rounded-2xl min-w-56 w-full py-2 px-4">
       <Collapsible.Trigger class="flex items-center justify-between w-full">
         <span class="text-lg font-semibold">File Format</span>
         <ChevronRight class="h-4 w-4 transition-transform {filterFileFormatVisible ? `rotate-90` : ``}" />
@@ -182,7 +185,7 @@
   </Collapsible.Root>
   {#if assetStatuses.length > 1} <!-- Only show status filter if there are multiple statuses available for filtering -->
     <Collapsible.Root bind:open={filterStatusVisible} class="mt-4">
-      <div class="flex flex-col bg-accent rounded-2xl min-w-56 w-full py-2 px-4">
+      <div class="flex flex-col bg-card rounded-2xl min-w-56 w-full py-2 px-4">
         <Collapsible.Trigger class="flex items-center justify-between w-full">
           <span class="text-lg font-semibold">Status</span>
           <ChevronRight class="h-4 w-4 transition-transform {filterStatusVisible ? `rotate-90` : ``}" />
@@ -222,9 +225,9 @@
     <!-- Content -->
     <div class="flex flex-col items-center w-full">
       <!-- Top Bar -->
-      <div class="flex flex-col bg-accent rounded-2xl w-full p-4 pt-2 mb-4">
+      <div class="flex flex-col bg-card rounded-2xl w-full p-4 pt-2 mb-4">
         <Label for="asset-search" class="sr-only">Search</Label>
-        <Input type="text" placeholder="Search assets..." class="w-full mt-2" id="asset-search" />
+        <Input type="text" placeholder="Search assets..." class="w-full mt-2" id="asset-search" bind:value={searchQuery} />
         <div class="flex flex-row mt-2 flex-wrap gap-2">
           <div class="flex items-center gap-2">
             <Select.Root allowDeselect={false} bind:value={selectedPageSizeString} type="single" onValueChange={(value) => (currentPage = 1)}>

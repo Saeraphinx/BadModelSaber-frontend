@@ -5,6 +5,9 @@ import { fetchApi, fetchApiSafe } from "$lib/scripts/utils/api";
 
 export const load: PageLoad = async ({ params, fetch }) => {
   let data = await fetchApi<AssetRequestPublicAPIv3>(`/requests/${params.id}`, {}, fetch).then(res => {
+    if (`id` in res.data !== true) {
+      error(500, { message: `No data received from API`, additionalInfo: res.message });
+    }
     return res.data;
   }).catch(err => {
     if (err.status === 404) {

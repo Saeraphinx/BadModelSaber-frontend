@@ -8,6 +8,17 @@ export const load: LayoutLoad = async ({ fetch }) => {
   let pendingToasts: Awaited<ReturnType<LayoutLoad>>['pendingToasts'] = [];
   let userToasted = false;
   let alertsToasted = false;
+  const defaultObj = {
+    fetch,
+    alerts: [],
+    requestCounts: {
+      incoming: 0,
+      outgoing: 0,
+      reports: null,
+    },
+    user: undefined,
+    pendingToasts: pendingToasts,
+  }
   let userRes = await fetchApiSafe<UserPublicAPIv3>("/users/me", {
     method: "GET",
     credentials: "include",
@@ -29,16 +40,7 @@ export const load: LayoutLoad = async ({ fetch }) => {
   });
 
   if (userRes.isError) {
-    return {
-      fetch,
-      alerts: [],
-      requests: {
-        incoming: [],
-        outgoing: [],
-      },
-      user: undefined,
-      pendingToasts: pendingToasts,
-    }
+    return defaultObj;
   }
 
   let alertRes = await fetchApiSafe<AlertPublicAPIv3[]>("/alerts", {
@@ -61,7 +63,7 @@ export const load: LayoutLoad = async ({ fetch }) => {
     };
   });
 
-  let requestRes = await fetchApiSafe<AssetRequestPublicAPIv3[]>("/requests?myIncoming=true&myOutgoing=true", {
+  let requestRes = await fetchApiSafe<{incoming: number, outgoing: number, reports: number|null}>("/requests/counts", {
     method: "GET",
     credentials: "include",
   }, fetch).catch((error) => {
@@ -83,25 +85,9 @@ export const load: LayoutLoad = async ({ fetch }) => {
         title: `Unable to fetch user data`,
         description: `Error: ${userRes.message}`,
       }) : null;
-      return {
-        fetch,
-        alerts: [],
-        requests: {
-          incoming: [],
-          outgoing: [],
-        },
-        user: undefined,
-      }
+      return defaultObj
     }
-    return {
-      fetch,
-      alerts: [],
-      requests: {
-        incoming: [],
-        outgoing: [],
-      },
-      user: undefined,
-    }
+    return defaultObj;
   }
 
   if (alertRes.isError && !alertsToasted) {
@@ -113,34 +99,13 @@ export const load: LayoutLoad = async ({ fetch }) => {
     });
   }
 
-  let incoming: AssetRequestPublicAPIv3[] = [];
-  let outgoing: AssetRequestPublicAPIv3[] = [];
-  if (requestRes.isError) {
-    console.error(`Failed to fetch requests:`, requestRes.message);
-    pendingToasts.push({
-      type: 'error',
-      title: `Unable to fetch requests. Please try again later.`,
-      description: `Error: ${requestRes.message}`,
-    });
-  } else {
-    if (requestRes.data) {
-      for (const request of requestRes.data) {
-        if (request.requesterId === userRes.data?.id) {
-          outgoing.push(request);
-        }
-        if (request.requestResponseBy === userRes.data?.id) {
-          incoming.push(request);
-        }
-      }
-    }
-  }
-
   return {
       fetch,
       pendingToasts: pendingToasts,
-      requests: {
-        incoming: incoming,
-        outgoing: outgoing,
+      requestCounts: {
+        incoming: requestRes.isError ? 0 : requestRes.data?.incoming || 0,
+        outgoing: requestRes.isError ? 0 : requestRes.data?.outgoing || 0,
+        reports: requestRes.isError ? null : requestRes.data?.reports || null,
       },
       user: userRes.data,
       alerts: alertRes.isError ? [] : (alertRes.data || []),

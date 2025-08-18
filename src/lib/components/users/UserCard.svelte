@@ -25,7 +25,9 @@
     <p class="text-xl pb-1 font-semibold">{user.displayName}</p>
     <div class="flex flex-row flex-wrap wrap-normal gap-1">
       {#each roleData as role}
-        <Badge class="mr-1 capitalize {role.textColor} {role.bgColor}">{role.text}</Badge>
+        {#if !role.hidden}
+          <Badge class="mr-1 capitalize {role.textColor} {role.bgColor}">{role.text}</Badge>
+        {/if}
       {/each}
     </div>
   </div>

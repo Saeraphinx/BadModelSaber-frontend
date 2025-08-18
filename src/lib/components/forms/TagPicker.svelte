@@ -34,6 +34,14 @@
     });
     return tags;
   });
+  let typeCount = $derived.by(() => {
+    let count = 0;
+    let typeSpecificTags = allTags.filter(({ data }) => data.category === "Type-Specific").map(({ tag }) => tag);
+    selectedTags.forEach((tag) => {
+      if (typeSpecificTags.includes(tag)) count++;
+    });
+    return count;
+  });
 </script>
 
 <Dialog.Root bind:open={open}>
@@ -44,7 +52,14 @@
     <ScrollArea class="max-h-[70vh]">
       <div class="flex flex-wrap gap-2">
         {#each selectedTags as tag}
-          <TagBadge {tag} />
+          <button
+            onclick={() => {
+              selectedTags = selectedTags.filter((t) => t !== tag);
+            }}>
+            <TagBadge {tag} class="hover:bg-gray-600">
+              <MinusIcon />
+            </TagBadge>
+          </button>
         {:else}
           <span class="text-muted-foreground">No tags selected.</span>
         {/each}
@@ -52,7 +67,12 @@
       <Separator class="my-2" />
       {#each Array.from(filteredTags.entries()) as [category, tags]}
         <div class="mb-4">
-          <p class="text-sm font-semibold mb-2">{category}</p>
+          <div class="flex flex-row align-center items-center mb-2">
+            <p class="text-sm font-semibold">{category}</p>
+            {#if category === "Type-Specific"}
+              <span class="ml-2 text-xs text-gray-500">{typeCount}/1 selected</span>
+            {/if}
+          </div>
           <div class="flex flex-wrap gap-2">
             {#each tags as tag}
               <button
@@ -60,6 +80,10 @@
                   if (selectedTags.includes(tag)) {
                     selectedTags = selectedTags.filter((t) => t !== tag);
                   } else {
+                    if (category === "Type-Specific" && typeCount >= 1 && !selectedTags.includes(tag)) {
+                      // remove all other type-specific tags
+                      selectedTags = selectedTags.filter((t) => !filteredTags.get("Type-Specific")?.includes(t));
+                    }
                     selectedTags = [...selectedTags, tag];
                   }
                 }}>

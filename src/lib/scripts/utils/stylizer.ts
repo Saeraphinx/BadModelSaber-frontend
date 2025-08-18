@@ -57,6 +57,7 @@ export function getRoleData(role: string): {
   textColor: string;
   text: string;
   value: UserRole| undefined;
+  hidden: boolean;
 } {
   switch (role) {
     case 'admin':
@@ -65,6 +66,7 @@ export function getRoleData(role: string): {
         textColor: 'text-white',
         text: 'Admin',
         value: UserRole.Admin,
+        hidden: false,
       }
     case 'developer':
       return {
@@ -72,6 +74,7 @@ export function getRoleData(role: string): {
         textColor: 'text-white',
         text: 'Developer',
         value: UserRole.Developer,
+        hidden: false,
       }
     case 'moderator':
       return {
@@ -79,6 +82,7 @@ export function getRoleData(role: string): {
         textColor: 'text-black',
         text: 'Moderator',
         value: UserRole.Moderator,
+        hidden: false,
       }
     case 'bsmg':
       return {
@@ -86,6 +90,7 @@ export function getRoleData(role: string): {
         textColor: 'text-white',
         text: 'BSMG Staff',
         value: UserRole.BSMG,
+        hidden: false,
       }
     case 'trusted':
       return {
@@ -93,6 +98,7 @@ export function getRoleData(role: string): {
         textColor: 'text-black',
         text: '3D Modeler',
         value: UserRole.Trusted,
+        hidden: false,
       }
     default:
       return {
@@ -100,6 +106,7 @@ export function getRoleData(role: string): {
         textColor: 'text-white',
         text: 'Unknown Role',
         value: undefined,
+        hidden: true,
       }; // Default color for unknown roles
   }
 }
