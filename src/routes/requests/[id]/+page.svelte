@@ -4,14 +4,14 @@
   import RequestMessage from '$lib/components/requests/RequestMessage.svelte';
   import { UserRole, type UserPublicAPIv3 } from '$lib/scripts/api/DBTypes.js';
   import { fetchApi } from '$lib/scripts/utils/api.js';
-  import type { RequestMessage as ReqMessagge }  from '$lib/scripts/api/DBTypes.js';
+  import type { RequestMessage as ReqMessage }  from '$lib/scripts/api/DBTypes.js';
   import Textarea from '$shadcn/components/ui/textarea/textarea.svelte';
   import Button from '$shadcn/components/ui/button/button.svelte';
 
   let { data } = $props();
 
   let users = $state<Map<string, {id: string, displayName:string, avatarUrl:string}>>(new Map());
-  let messages: ReqMessagge[] = $state([{
+  let messages: ReqMessage[] = $state([{
     userId: `5`,
     message: `Report created by ${data.user?.displayName || 'Unknown User'}`,
     timestamp: new Date(data.pageData.createdAt)
@@ -57,6 +57,26 @@
       return data.pageData.accepted === null;
     }
   });
+  async function sendMessage() {
+    if (!messageBox.trim()) return;
+    await fetchApi(`/requests/${data.pageData.id}/messages`, {
+      method: 'POST',
+      body: JSON.stringify({
+        message: messageBox,
+      }),
+    }, fetch)
+      .then(res => {
+        messages = [...messages, {
+          userId: data.user!.id,
+          message: messageBox,
+          timestamp: new Date(),
+        }];
+        messageBox = '';
+      })
+      .catch(err => {
+        console.error('Failed to send message:', err);
+      });
+  }
 </script>
 
 <div class="flex flex-row items-start justify-center gap-4" data-sveltekit-preload-code="false">
@@ -87,8 +107,10 @@
         <p class="text-muted-foreground">No messages found for this request.</p>
       {/each}
       {#if isAllowedToSend}
-        <Textarea bind:value={messageBox} placeholder="Type your message here..." class="w-full mt-4" rows={5} />
-        <Button variant="default" class="mt-2">Submit Message</Button>
+        <div class="flex flex-col items-end">
+          <Textarea bind:value={messageBox} placeholder="Type your message here..." class="w-full" rows={5} />
+          <Button variant="default" class="mt-2 w-32" onclick={sendMessage}>Submit Message</Button>
+        </div>
       {/if}
     {:catch error}
       <p class="text-red-500">Error loading messages: {error.message}</p>
