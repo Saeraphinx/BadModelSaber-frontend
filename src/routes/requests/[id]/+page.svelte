@@ -2,7 +2,7 @@
   import AssetCard from '$lib/components/assets/AssetCard.svelte';
   import RequestCard from '$lib/components/requests/RequestCard.svelte';
   import RequestMessage from '$lib/components/requests/RequestMessage.svelte';
-  import { UserRole, type UserPublicAPIv3 } from '$lib/scripts/api/DBTypes.js';
+  import { RequestType, UserRole, type UserPublicAPIv3 } from '$lib/scripts/api/DBTypes.js';
   import { fetchApi } from '$lib/scripts/utils/api.js';
   import type { RequestMessage as ReqMessage }  from '$lib/scripts/api/DBTypes.js';
   import Textarea from '$shadcn/components/ui/textarea/textarea.svelte';
@@ -13,8 +13,9 @@
   let users = $state<Map<string, {id: string, displayName:string, avatarUrl:string}>>(new Map());
   let messages: ReqMessage[] = $state([{
     userId: `5`,
-    message: `Report created by ${data.user?.displayName || 'Unknown User'}`,
-    timestamp: new Date(data.pageData.createdAt)
+    // dont try to read this. save yourself the pain
+    message: `Request created by ${data.pageData?.requester?.displayName || 'Unknown User'}\n\n${data.pageData.requester?.displayName} would like to ${data.pageData.requestType === RequestType.Credit ? `add you as a collaborator on` : data.pageData.requestType === RequestType.Link ? `add a related link to` : `report`} the asset "${data.pageData.refrencedAsset?.name || 'Unknown Asset'}". ${data.user?.roles.includes(UserRole.Moderator) && data.pageData.requestType !== RequestType.Report && data.user.id !== data.pageData.requesterId ? `Would you like to accept or reject this request?` : ``}`,
+    timestamp: new Date(data.pageData.createdAt),
   },
     ...data.pageData.messages
   ]);
@@ -50,6 +51,9 @@
   // Message boxes
   let messageBox = $state<string>('');
   let isAllowedToSend = $derived.by(() => {
+    if (data.pageData.requestType !== RequestType.Report) {
+      return false;
+    }
     if (data.user) {
       if (data.user.roles.includes(UserRole.Admin) || data.user.roles.includes(UserRole.Moderator)) {
         return true;

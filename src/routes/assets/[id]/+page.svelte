@@ -6,7 +6,7 @@
   import * as Carousel from "$shadcn/components/ui/carousel/index.js";
   import Separator from "$shadcn/components/ui/separator/separator.svelte";
   import { type CarouselAPI } from "$shadcn/components/ui/carousel/context.js";
-  import { BadgeAlert, Car, ChevronLeftIcon, ChevronRightIcon, CircleDot, CircleIcon, ClipboardCopyIcon, CloudDownloadIcon, DotIcon, DownloadIcon, Edit, HamburgerIcon, MegaphoneIcon, MenuIcon, PlusIcon } from "@lucide/svelte";
+  import { BadgeAlert, Car, ChevronLeftIcon, ChevronRightIcon, CircleDot, CircleIcon, ClipboardCopyIcon, CloudDownloadIcon, DotIcon, DownloadIcon, Edit, HamburgerIcon, MegaphoneIcon, MenuIcon, PlusIcon, SquarePenIcon } from "@lucide/svelte";
   import { MediaQuery } from "svelte/reactivity";
   import { navigating, page } from "$app/state";
   import Skeleton from "$shadcn/components/ui/skeleton/skeleton.svelte";
@@ -23,6 +23,7 @@
   import { zAsset } from "$lib/scripts/api/validator.js";
   import { fromZodError } from "zod-validation-error";
   import { cn } from "$shadcn/utils";
+  import LinkAssetDialog from "$lib/components/assets/LinkAssetDialog.svelte";
 
   let { data } = $props();
   const typeData = $derived.by(() => getAssetTypeData(data.pageData.type));
@@ -31,7 +32,8 @@
   let iconApi = $state<CarouselAPI>();
   let relatedApi = $state<CarouselAPI>();
   let authorApi = $state<CarouselAPI>();
-  let dialog: ApprovalPopup;
+  let approvalDialog: ApprovalPopup;
+  let addRelatedDialog: LinkAssetDialog;
 
   // #region Report
   let allowedToReport = $derived.by(() => {
@@ -57,6 +59,7 @@
   });
   let zAssetName = $derived.by(() => zAsset.shape.name.safeParse(editName));
   let zAssetDescription = $derived.by(() => zAsset.shape.description.safeParse(editDescription));
+  let isBlurred = $state<boolean>(data.pageData.tags.includes(Tags.NSFW));
   //#endregion
 
   // #region Edit Submissions
@@ -142,6 +145,7 @@
     editDescription = data.pageData.description || "";
     editTags = (data.pageData.tags as Tags[]) || [];
     openTagPicker = false;
+    isBlurred = data.pageData.tags.includes(Tags.NSFW);
   });
   // #endregion
 </script>
@@ -193,7 +197,7 @@
               onclick={() => {
                 openTagPicker = true;
               }}>
-              <MenuIcon />
+              <SquarePenIcon />
             </Badge>
           {/if}
         </div>
@@ -259,13 +263,19 @@
     <Carousel.Content>
       {#each data.pageData.icons as icon}
         <Carousel.Item>
-          <div class="overflow-hidden rounded-2xl">
-            <img src={`${getAssetThumbnailUrl(icon)}`} alt="ModelSaber Logo" class="w-full h-full rounded-2xl {data.pageData.tags.includes(Tags.NSFW) ? `not-hover:blur-xl transition-all duration-700` : ``}" />
+          <div class="overflow-hidden rounded-2xl relative">
+            <img src={`${getAssetThumbnailUrl(icon)}`} alt="Icon for {data.pageData.name}" class="w-full h-full rounded-2xl transition-all duration-300 {isBlurred ? `blur-2xl` : ``}" />
+            {#if isBlurred}
+              <div class="flex flex-col absolute top-0 left-0 w-full h-full justify-center items-center">
+                <p class="text-green">This asset has the NSFW tag.</p>
+                <Button onclick={() => isBlurred = false}>Unhide</Button>
+              </div>
+            {/if}
           </div>
         </Carousel.Item>
       {/each}
     </Carousel.Content>
-    {#if iconApi}
+    {#if iconApi && data.pageData.icons.length > 1}
       <CarouselNavigator api={iconApi} />
     {/if}
   </Carousel.Root>
@@ -276,7 +286,7 @@
     <div class="flex justify-between items-center">
       <span class="text-lg font-semibold">{title}</span>
       {#if apiType === "related" && isEditing}
-        <Button>
+        <Button onclick={() => addRelatedDialog?.showDialog()}>
           <PlusIcon />
           Add Related Asset
         </Button>
@@ -344,7 +354,7 @@
         <Button
           variant="secondary"
           onclick={() => {
-            dialog?.showDialog(data.pageData.id, data.pageData.name);
+            approvalDialog?.showDialog(data.pageData.id, data.pageData.name);
           }}>
           <BadgeAlert />
           Approval Dialog
@@ -440,5 +450,6 @@
   </div>
 </div>
 
-<ApprovalPopup bind:this={dialog} />
+<ApprovalPopup bind:this={approvalDialog} />
+<LinkAssetDialog bind:this={addRelatedDialog} />
 <TagPicker bind:open={openTagPicker} bind:selectedTags={editTags} type={data.pageData.type} />

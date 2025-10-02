@@ -45,7 +45,7 @@
   <Tabs.Root class="w-full items-center" value="incoming">
       <Tabs.List>
         <Tabs.Trigger value="outgoing">
-          My Requests
+          My Outgoing Requests
           <Badge variant="outline">
             {data.requestCounts.outgoing}
           </Badge>

@@ -32,9 +32,11 @@
   <div class="relative">
     <p class="text-sm text-gray-500 mt-1">{request.requestType === RequestType.Report ? `Request` : `Created`} by {request.requester?.displayName}</p>
     <p class="text-sm text-gray-500 mt-1">Created at: {new Date(request.createdAt).toLocaleDateString()}</p>
-    <div class="absolute bottom-0 right-0 flex items-center mt-2">
-      <MessageSquareTextIcon class="text-gray-500" />
-      <span class="ml-1 text-gray-500 text-base">{request.messages.length}</span>
-    </div>
+    {#if request.requestType === RequestType.Report}
+      <div class="absolute bottom-0 right-0 flex items-center mt-2">
+        <MessageSquareTextIcon class="text-gray-500" />
+        <span class="ml-1 text-gray-500 text-base">{request.messages.length}</span>
+      </div>
+    {/if}
   </div>
 </div>
