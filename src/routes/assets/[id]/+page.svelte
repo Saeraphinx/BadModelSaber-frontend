@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Status, Tags, UserRole, type AssetPublicAPIv3 } from "$lib/scripts/api/DBTypes.js";
+  import { Status, Tags, UserPermissions, type AssetPublicAPIv3 } from "$lib/scripts/api/DBTypes.js";
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
   import Badge from "$shadcn/components/ui/badge/badge.svelte";
   import Button from "$shadcn/components/ui/button/button.svelte";
@@ -44,8 +44,7 @@
   // #region Editing
   let allowedToEdit = $derived.by(() => {
     if (!data.user) return false;
-    if (data.user.roles.includes(UserRole.Admin)) return true;
-    if (data.user.roles.includes(UserRole.Moderator)) return true;
+    if (data.user.roles.includes(UserPermissions.Edit_Any_Asset)) return true;
     if (data.pageData.uploaderId === data.user.id) return true;
     return false;
   });
@@ -350,7 +349,7 @@
           Report
         </Button>
       {/if}
-      {#if data.user && data.user.roles.includes(UserRole.Moderator)}
+      {#if data.user && data.user.roles.includes(UserPermissions.Approve_Assets)}
         <Button
           variant="secondary"
           onclick={() => {

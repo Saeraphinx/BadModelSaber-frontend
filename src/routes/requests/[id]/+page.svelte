@@ -2,7 +2,7 @@
   import AssetCard from '$lib/components/assets/AssetCard.svelte';
   import RequestCard from '$lib/components/requests/RequestCard.svelte';
   import RequestMessage from '$lib/components/requests/RequestMessage.svelte';
-  import { RequestType, UserRole, type UserPublicAPIv3 } from '$lib/scripts/api/DBTypes.js';
+  import { RequestType, UserPermissions, type UserPublicAPIv3 } from '$lib/scripts/api/DBTypes.js';
   import { fetchApi } from '$lib/scripts/utils/api.js';
   import type { RequestMessage as ReqMessage }  from '$lib/scripts/api/DBTypes.js';
   import Textarea from '$shadcn/components/ui/textarea/textarea.svelte';
@@ -14,7 +14,7 @@
   let messages: ReqMessage[] = $state([{
     userId: `5`,
     // dont try to read this. save yourself the pain
-    message: `Request created by ${data.pageData?.requester?.displayName || 'Unknown User'}\n\n${data.pageData.requester?.displayName} would like to ${data.pageData.requestType === RequestType.Credit ? `add you as a collaborator on` : data.pageData.requestType === RequestType.Link ? `add a related link to` : `report`} the asset "${data.pageData.refrencedAsset?.name || 'Unknown Asset'}". ${data.user?.roles.includes(UserRole.Moderator) && data.pageData.requestType !== RequestType.Report && data.user.id !== data.pageData.requesterId ? `Would you like to accept or reject this request?` : ``}`,
+    message: `Request created by ${data.pageData?.requester?.displayName || 'Unknown User'}\n\n${data.pageData.requester?.displayName} would like to ${data.pageData.requestType === RequestType.Credit ? `add you as a collaborator on` : data.pageData.requestType === RequestType.Link ? `add a related link to` : `report`} the asset "${data.pageData.refrencedAsset?.name || 'Unknown Asset'}". ${data.user?.roles.includes(UserPermissions.Manage_All_Reports) && data.pageData.requestType !== RequestType.Report && data.user.id !== data.pageData.requesterId ? `Would you like to accept or reject this request?` : ``}`,
     timestamp: new Date(data.pageData.createdAt),
   },
     ...data.pageData.messages
@@ -55,7 +55,7 @@
       return false;
     }
     if (data.user) {
-      if (data.user.roles.includes(UserRole.Admin) || data.user.roles.includes(UserRole.Moderator)) {
+      if (data.user.roles.includes(UserPermissions.Manage_All_Reports)) {
         return true;
       }
       return data.pageData.accepted === null;

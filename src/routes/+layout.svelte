@@ -13,7 +13,7 @@
   import { Toaster } from "$shadcn/components/ui/sonner";
   import { toast, type ExternalToast } from "svelte-sonner";
   import { env } from "$env/dynamic/public";
-  import { UserRole, type AlertPublicAPIv3 } from "$lib/scripts/api/DBTypes";
+  import { UserPermissions, type AlertPublicAPIv3 } from "$lib/scripts/api/DBTypes";
   import Separator from "$shadcn/components/ui/separator/separator.svelte";
   import { Badge } from "$shadcn/components/ui/badge";
   import * as Sheet from "$shadcn/components/ui/sheet";
@@ -30,7 +30,7 @@
   let showFullBar = new MediaQuery("min-width: 769px");
   // #region KonamiListener
   onMount(() => {
-    if (data.user && data.user.id && data.user.roles.includes(UserRole.Banned)) return;
+    if (data.user && data.user.id && !data.user.roles.includes(UserPermissions.Create_Assets)) return;
     const konamiCode = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
 
     let inputSequence: string[] = [];
@@ -48,7 +48,7 @@
       }
 
       if (inputSequence.join("") === konamiCode.join("")) {
-        if (!data.user || !data.user.id || data.user.roles.includes(UserRole.Banned)) {
+        if (!data.user || !data.user.id) {
           toast.error("You must be logged in to activate this feature.", {
             duration: 5000,
             closeButton: true,
@@ -56,7 +56,7 @@
           });
           return;
         }
-        if (data.user.roles.includes(UserRole.Secret)) {
+        if (data.user.roles.includes(UserPermissions.View_Pending_Assets)) {
           toast.info("You have already activated the secret features.", {
             description: "If you want to disable them, disable them in your user settings.",
             duration: 5000,
@@ -300,7 +300,7 @@
                 Requests
               </DropdownMenu.Item>
             </a>
-            {#if data.user.roles.includes(UserRole.Secret)}
+            {#if data.user.roles.includes(UserPermissions.View_Pending_Assets)}
               <button onclick={removeSecret}>
                 <DropdownMenu.Item>
                   <TrafficConeIcon class="text-orange-500" />
@@ -308,12 +308,14 @@
                 </DropdownMenu.Item>
               </button>
             {/if}
-            <a href="/create">
-              <DropdownMenu.Item>
-                <PlusIcon />
-                Create Asset
-              </DropdownMenu.Item>
-            </a>
+            {#if data.user.roles.includes(UserPermissions.Create_Assets) }
+              <a href="/create">
+                <DropdownMenu.Item>
+                  <PlusIcon />
+                  Create Asset
+                </DropdownMenu.Item>
+              </a>
+            {/if}
             <DropdownMenu.Separator />
             <DropdownMenu.RadioGroup bind:value={theme} onValueChange={handleThemeChange}>
               <DropdownMenu.Label>Theme</DropdownMenu.Label>

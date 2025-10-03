@@ -1,6 +1,6 @@
 import { User } from "@lucide/svelte";
 import type { LayoutLoad } from "./$types";
-import { type AlertPublicAPIv3, type AssetRequestPublicAPIv3, type UserPublicAPIv3, UserRole } from "$lib/scripts/api/DBTypes";
+import { type AlertPublicAPIv3, type AssetRequestPublicAPIv3, type UserPublicAPIv3 } from "$lib/scripts/api/DBTypes";
 import { fetchApiSafe } from "$lib/scripts/utils/api";
 import { toast } from "svelte-sonner";
 

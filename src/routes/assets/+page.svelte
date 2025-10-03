@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { AssetFileFormat, Status, UserRole, type AssetPublicAPIv3 } from "$lib/scripts/api/DBTypes";
+  import { AssetFileFormat, Status, UserPermissions, type AssetPublicAPIv3 } from "$lib/scripts/api/DBTypes";
   import AssetCard from "$lib/components/assets/AssetCard.svelte";
   import * as RadioGroup from "$shadcn/components/ui/radio-group/index.js";
   import * as Pagination from "$shadcn/components/ui/pagination";
@@ -55,10 +55,10 @@
   });
   let assetStatuses = $derived.by(() => {
     if (!data.user) return [Status.Approved];
-    if (data.user.roles.includes(UserRole.Moderator) || data.user.roles.includes(UserRole.Admin)) {
+    if (data.user.roles.includes(UserPermissions.View_All_Assets)) {
       return Object.values(Status);
     }
-    return data.user.roles.includes(UserRole.Secret) ? [Status.Approved, Status.Pending] : [Status.Approved];
+    return data.user.roles.includes(UserPermissions.View_Pending_Assets) ? [Status.Approved, Status.Pending] : [Status.Approved];
   });
 
   // Filters Themselves
@@ -263,7 +263,7 @@
             <span class="text-gray-500 dark:text-gray-400 w-full py-8 text-center">No assets found.</span>
           {/if}
           {#each currentAssetArray as asset (asset.id)}
-            <AssetCard {asset} approvalDialog={data.user?.roles.includes(UserRole.Moderator) ? dialog : undefined} size={smallerIcons.current ? `normal` : `large`} />
+            <AssetCard {asset} approvalDialog={data.user?.roles.includes(UserPermissions.Approve_Assets) ? dialog : undefined} size={smallerIcons.current ? `normal` : `large`} />
           {/each}
         {/if}
       </div>

@@ -1,4 +1,4 @@
-import { AssetFileFormat, UserRole } from "../api/DBTypes";
+import { AssetFileFormat, UserPermissions } from "../api/DBTypes";
 
 export function capitalizeFirstLetter(str: any): string {
   if (!str) return ``; // Handle empty strings
@@ -56,48 +56,48 @@ export function getRoleData(role: string): {
   bgColor: string;
   textColor: string;
   text: string;
-  value: UserRole| undefined;
+  value: UserPermissions | undefined;
   hidden: boolean;
 } {
   switch (role) {
-    case 'admin':
+    case UserPermissions.C_Admin:
       return {
         bgColor: 'bg-red-500',
         textColor: 'text-white',
         text: 'Admin',
-        value: UserRole.Admin,
+        value: UserPermissions.C_Admin,
         hidden: false,
       }
-    case 'developer':
+    case UserPermissions.C_Developer:
       return {
         bgColor: 'bg-pink-500',
         textColor: 'text-white',
         text: 'Developer',
-        value: UserRole.Developer,
+        value: UserPermissions.C_Developer,
         hidden: false,
       }
-    case 'moderator':
+    case UserPermissions.C_Moderator:
       return {
         bgColor: 'bg-blue-500',
         textColor: 'text-black',
         text: 'Moderator',
-        value: UserRole.Moderator,
+        value: UserPermissions.C_Moderator,
         hidden: false,
       }
-    case 'bsmg':
+    case UserPermissions.C_BSMG_Staff:
       return {
         bgColor: 'bg-[#3b397a]',
         textColor: 'text-white',
         text: 'BSMG Staff',
-        value: UserRole.BSMG,
+        value: UserPermissions.C_BSMG_Staff,
         hidden: false,
       }
-    case 'trusted':
+    case UserPermissions.C_Modeler:
       return {
         bgColor: 'bg-[#59d8f0]',
         textColor: 'text-black',
         text: '3D Modeler',
-        value: UserRole.Trusted,
+        value: UserPermissions.C_Modeler,
         hidden: false,
       }
     default:

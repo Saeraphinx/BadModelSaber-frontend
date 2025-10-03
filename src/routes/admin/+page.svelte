@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { AlertType, UserRole } from "$lib/scripts/api/DBTypes";
+  import { AlertType, UserPermissions } from "$lib/scripts/api/DBTypes";
   import * as Tabs from "$shadcn/components/ui/tabs/index.js";
   import * as Select from "$shadcn/components/ui/select/index.js";
   import Label from "$shadcn/components/ui/label/label.svelte";
@@ -85,7 +85,7 @@
       <Label class="mt-4 mb-2">Target User</Label>
       <Input placeholder="User ID" />
       <div class="flex flex-row flex-wrap gap-2 m-2">
-        {#each Object.values(UserRole) as item}
+        {#each Object.values(UserPermissions) as item}
           <Checkbox id={item} />
           <Label for={item}>{item}</Label>
         {/each}
